@@ -7,7 +7,7 @@ import ChallengeChoice from "../pages/challenge/ChallengeChoice";
 import ChallengeMain from "../pages/challenge/ChallengeMain";
 import Shopping from "../pages/shopping/Shopping";
 import Restaurant from "../pages/restaurant/Restaurant";
-import Community from "../pages/community/community";
+import Community from "../pages/community/Community";
 import NotFound from "../pages/NotFound";
 
 // Challenge Main Components import (경로 수정!)
