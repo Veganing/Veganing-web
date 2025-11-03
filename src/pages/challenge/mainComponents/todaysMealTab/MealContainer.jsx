@@ -4,7 +4,7 @@ import useMealUpload from "../../../../hooks/useMealUpload";
 import MealUploadCard from "./MealUploadCard";
 import LLMAnalysis from "./LLMAnalysis";
 import MealIndex from "./MealIndex";
-import UploadButton from './uploadButton';
+import UploadButton from './UploadButton';
 
 function MealContainer() {
     const [mealsCount, setMealsCount] = useState(0);
