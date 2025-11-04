@@ -1,19 +1,102 @@
-import { Outlet } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import ChallengeTabs from "./mainComponents/challengeContent/ChallengeTab";
+import { getCurrentChallenge, getChallengeStats, getToken } from '../../api/backend';
 
 function ChallengeMain() {
-    // 카드 데이터
+    const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(true);
+    const [challengeData, setChallengeData] = useState(null);
+    const [statsData, setStatsData] = useState(null);
+
+    useEffect(() => {
+        const fetchChallengeData = async () => {
+            try {
+                setIsLoading(true);
+                const token = getToken();
+
+                if (!token) {
+                    console.error('로그인이 필요합니다.');
+                    navigate('/challenge/choice');
+                    return;
+                }
+
+                // 현재 챌린지와 통계 데이터를 동시에 가져오기
+                const [challengeResponse, statsResponse] = await Promise.all([
+                    getCurrentChallenge(token).catch(err => {
+                        console.error('챌린지 조회 실패:', err);
+                        return null;
+                    }),
+                    getChallengeStats(token).catch(err => {
+                        console.error('통계 조회 실패:', err);
+                        return null;
+                    })
+                ]);
+
+                if (!challengeResponse || !challengeResponse.userChallenge) {
+                    console.log('진행 중인 챌린지가 없습니다.');
+                    navigate('/challenge/choice');
+                    return;
+                }
+
+                setChallengeData(challengeResponse.userChallenge);
+                setStatsData(statsResponse?.stats);
+            } catch (error) {
+                console.error('데이터 조회 실패:', error);
+                navigate('/challenge/choice');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchChallengeData();
+
+        // 페이지 포커스 시 데이터 새로고침
+        const handleFocus = () => {
+            fetchChallengeData();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                fetchChallengeData();
+            }
+        });
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [navigate]);
+
+    // 로딩 중일 때
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-white pt-[157px] pb-[80px] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-4xl mb-4">⏳</div>
+                    <p className="text-gray-600">챌린지 데이터 불러오는 중...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // 챌린지 데이터가 없을 때 (실패 시)
+    if (!challengeData) {
+        return null;
+    }
+
+    // 카드 데이터 (백엔드에서 받은 실제 데이터 사용)
     const cards = [
-        { emoji: '📅', value: '7', label: '일째 진행' },
-        { emoji: '🔥', value: '7', label: '연속 달성' },
-        { emoji: '⭐', value: '1250', label: '포인트' },
-        { emoji: '🏆', value: 'Lv.3', label: '레벨' }
+        { emoji: '📅', value: challengeData.currentDay || 0, label: '일째 진행' },
+        { emoji: '🔥', value: statsData?.currentStreak || 0, label: '연속 달성' },
+        { emoji: '⭐', value: statsData?.currentPoints || 0, label: '포인트' },
+        { emoji: '🏆', value: `Lv.${statsData?.level || 1}`, label: '레벨' }
     ];
 
-    // 진행률 데이터
-    const currentDay = 7;
-    const totalDays = 30;
-    const progress = (currentDay / totalDays) * 100;
+    // 진행률 데이터 (백엔드에서 받은 실제 데이터 사용)
+    const currentDay = challengeData.currentDay || 0;
+    const totalDays = challengeData.totalDays || 30;
+    const progress = challengeData.progress || 0;
 
     return (
         <div className="min-h-screen bg-white pt-[157px] pb-[80px]">
@@ -22,13 +105,13 @@ function ChallengeMain() {
                 {/* Challenge Hero */}
                 <div className="w-full text-center space-y-6 mb-12">
                     <h1 className="text-6xl font-normal font-['Inter'] leading-[60px] tracking-tight text-primary-dark">
-                        1개월 비건 챌린지
+                        {challengeData.title || '비건 챌린지'}
                     </h1>
                     <div className="flex justify-center">
                         <div className="p-[2px] bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full">
                             <div className="px-6 py-2 bg-white rounded-full">
                                 <span className="text-teal-600 text-bold font-medium font-['Nunito']">
-                                    플렉시테리언
+                                    {challengeData.veganType || '비건'}
                                 </span>
                             </div>
                         </div>
