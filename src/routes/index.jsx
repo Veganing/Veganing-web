@@ -9,6 +9,8 @@ import Shopping from "../pages/shopping/Shopping";
 import Restaurant from "../pages/restaurant/Restaurant";
 import Community from "../pages/community/Community";
 import NotFound from "../pages/NotFound";
+import Login from "../pages/user/Login"; //로그인 페이지 라우트용 임포트
+import SignUp from "../pages/user/SignUp.jsx"; //회원가입 페이지
 
 // Challenge Main Components import (경로 수정!)
 import MealContainer from "../pages/challenge/mainComponents/todaysMealTab/MealContainer";
@@ -16,11 +18,12 @@ import ProgressContainer from "../pages/challenge/mainComponents/progressTab/Pro
 import RecipeTab from "../pages/challenge/mainComponents/challengeContent/RecipeTab";
 import ShoppingTab from "../pages/challenge/mainComponents/challengeContent/ShoppingTab";
 
+
 const router = createBrowserRouter([
     {
         path: "/",
         element: <RootLayout />,
-        errorElement: <NotFound />,
+        //errorElement: <NotFound />,
         children: [
             {
                 index: true,
@@ -41,6 +44,14 @@ const router = createBrowserRouter([
             {
                 path: "map",
                 element: <Restaurant />,
+            },
+            {
+                path: "login", 
+                element: <Login />, //login 라우트 추가
+            },
+            {
+                path: "signup",
+                element: <SignUp />, //signup 라우트
             },
             {
                 path: "challenge/main",
@@ -68,6 +79,7 @@ const router = createBrowserRouter([
                     },
                 ],
             },
+            { path: "*", element: <NotFound /> }, // ← 추가: 자식 라우트에서 404 처리
         ],
     },
 ]);
