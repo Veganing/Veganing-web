@@ -11,7 +11,9 @@ import {
     MessageCircleIcon, // <-- 피드 탭 '댓글'용
 } from "lucide-react";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { getCurrentChallenge, getToken } from "../../api/backend";
 import {
     Avatar,
     AvatarFallback,
@@ -172,6 +174,44 @@ const userBadgesData = [
 
 
 const Community = () => {
+    const navigate = useNavigate();
+    const [currentChallenge, setCurrentChallenge] = useState(null);
+    const [challengeLoading, setChallengeLoading] = useState(true);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    // 현재 챌린지 정보 가져오기
+    useEffect(() => {
+        const fetchCurrentChallenge = async () => {
+            try {
+                setChallengeLoading(true);
+                const token = getToken();
+
+                if (!token) {
+                    // 로그인하지 않은 상태
+                    setIsLoggedIn(false);
+                    setChallengeLoading(false);
+                    return;
+                }
+
+                setIsLoggedIn(true);
+                const response = await getCurrentChallenge(token);
+                setCurrentChallenge(response.challenge);
+            } catch (error) {
+                console.error('챌린지 조회 실패:', error);
+                setCurrentChallenge(null);
+            } finally {
+                setChallengeLoading(false);
+            }
+        };
+
+        fetchCurrentChallenge();
+    }, []);
+
+    // 챌린지 페이지로 이동
+    const goToChallenge = () => {
+        navigate('/challenge');
+    };
+
     return (
         <main className="flex-1 relative">
             <section className="container mx-auto px-4 py-16 relative">
@@ -537,56 +577,83 @@ const Community = () => {
 
                                                 </h3>
 
-
-
-                                                <div className="flex flex-col gap-4">
-
-                                                    <div className="text-3xl text-center">🥗</div>
-
-                                                    <h4 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base text-center tracking-[0] leading-6">
-
-                                                        컬러풀 샐러드 주간
-
-                                                    </h4>
-
-                                                    <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
-
-                                                        5가지 이상의 색깔을 가진 샐러드를 만들어보세요!
-
-                                                    </p>
-
-
-
-                                                    <div className="flex items-center justify-between text-[#495565] text-sm">
-
-                                                        <span className="[font-family:'Nunito',Helvetica] font-normal tracking-[0] leading-5">
-
-                                                            진행률
-
-                                                        </span>
-
-                                                        <span className="[font-family:'Nunito',Helvetica] font-normal tracking-[0] leading-5">
-
-                                                            3/7일
-
-                                                        </span>
-
+                                                {challengeLoading ? (
+                                                    // 로딩 중
+                                                    <div className="flex flex-col gap-4 items-center py-8">
+                                                        <div className="text-2xl">⏳</div>
+                                                        <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm">
+                                                            로딩 중...
+                                                        </p>
                                                     </div>
-
-
-
-                                                    <div className="w-full h-2 bg-[#03021333] rounded-[22369600px] overflow-hidden">
-
-                                                        <div className="w-[43%] h-full bg-[#030213]" />
-
+                                                ) : !isLoggedIn || !currentChallenge ? (
+                                                    // 로그인 안 했거나 챌린지 없음
+                                                    <div className="flex flex-col gap-4 items-center py-4">
+                                                        <div className="text-4xl">🌱</div>
+                                                        <h4 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base text-center tracking-[0] leading-6">
+                                                            {!isLoggedIn ? '로그인하고 챌린지를 시작하세요!' : '새로운 챌린지를 시작해보세요!'}
+                                                        </h4>
+                                                        <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
+                                                            {!isLoggedIn
+                                                                ? '비건 여정을 함께 시작해볼까요?'
+                                                                : '다양한 비건 챌린지에 도전해보세요!'}
+                                                        </p>
+                                                        <Button
+                                                            onClick={goToChallenge}
+                                                            className="w-full bg-[#00a63e] text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2 hover:bg-[#008235] transition-colors"
+                                                        >
+                                                            챌린지 페이지로 이동
+                                                        </Button>
                                                     </div>
+                                                ) : (
+                                                    // 진행 중인 챌린지 표시
+                                                    <div className="flex flex-col gap-4">
+                                                        <div className="text-3xl text-center">
+                                                            {currentChallenge.difficulty === 'easy' ? '🌱' :
+                                                             currentChallenge.difficulty === 'medium' ? '🌿' : '🌳'}
+                                                        </div>
 
+                                                        <h4 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base text-center tracking-[0] leading-6">
+                                                            {currentChallenge.title}
+                                                        </h4>
 
+                                                        <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
+                                                            {currentChallenge.description || '비건 챌린지에 도전 중입니다!'}
+                                                        </p>
 
-                                                    <Button className="w-full bg-[#00a63e] text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2">
-                                                        참여하기
-                                                    </Button>
-                                                </div>
+                                                        <div className="flex items-center justify-between text-[#495565] text-sm">
+                                                            <span className="[font-family:'Nunito',Helvetica] font-normal tracking-[0] leading-5">
+                                                                진행률
+                                                            </span>
+                                                            <span className="[font-family:'Nunito',Helvetica] font-normal tracking-[0] leading-5">
+                                                                {currentChallenge.progress || 0}%
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="w-full h-2 bg-[#03021333] rounded-[22369600px] overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-[#00a63e] transition-all duration-500"
+                                                                style={{ width: `${currentChallenge.progress || 0}%` }}
+                                                            />
+                                                        </div>
+
+                                                        <div className="flex items-center justify-center gap-4 text-sm">
+                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e]">
+                                                                ⭐ {currentChallenge.points || 0}pts
+                                                            </span>
+                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
+                                                                난이도: {currentChallenge.difficulty === 'easy' ? '쉬움' :
+                                                                        currentChallenge.difficulty === 'medium' ? '보통' : '어려움'}
+                                                            </span>
+                                                        </div>
+
+                                                        <Button
+                                                            onClick={goToChallenge}
+                                                            className="w-full bg-[#00a63e] text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2 hover:bg-[#008235] transition-colors"
+                                                        >
+                                                            챌린지 상세보기
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </CardContent>
                                         </Card>
 
