@@ -1,5 +1,5 @@
 // src/components/layout/Header.jsx
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../../assets/logo/logo.svg';
 
 import home from '../../assets/nav/home.svg';
@@ -16,6 +16,7 @@ import mapColored from '../../assets/nav/mapColored.svg';
 
 function Header() {
     const location = useLocation();
+    const navigate = useNavigate();
 
     const navItems = [
         { path: '/', label: '홈', icon: home, activeIcon: homeColored },
@@ -74,9 +75,13 @@ function Header() {
 
                     {/* 로그인 - 고정 너비 */}
                     <div className="w-[200px] flex justify-end">
-                        <button className="px-4 h-9 bg-white rounded-2xl shadow-sm border-2 border-cyan-500 text-teal-600 text-sm font-medium font-nunito hover:bg-gray-50 transition-colors">
-                            로그인
-                        </button>
+                    <button 
+                        type = "button"  
+                        onClick={() => navigate("/login")}
+                        className="px-4 h-9 bg-white rounded-2xl shadow-sm border-2 border-cyan-500 text-teal-600 text-sm font-medium font-nunito hover:bg-gray-50 transition-colors"
+                    >
+                        로그인
+                    </button>
                     </div>
 
                 </div>
