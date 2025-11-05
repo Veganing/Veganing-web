@@ -31,6 +31,10 @@ const router = createBrowserRouter([
             },
             {
                 path: "challenge",
+                element: <Navigate to="/challenge/choice" replace />,
+            },
+            {
+                path: "challenge/choice",
                 element: <ChallengeChoice />,
             },
             {

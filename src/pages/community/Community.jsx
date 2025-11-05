@@ -13,7 +13,7 @@ import {
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentChallenge, getToken } from "../../api/backend";
+import { getCurrentChallenge, getMyProfile, getChallengeStats, getToken } from "../../api/backend";
 import {
     Avatar,
     AvatarFallback,
@@ -178,6 +178,9 @@ const Community = () => {
     const [currentChallenge, setCurrentChallenge] = useState(null);
     const [challengeLoading, setChallengeLoading] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userProfile, setUserProfile] = useState(null);
+    const [userStats, setUserStats] = useState(null);
+    const [profileLoading, setProfileLoading] = useState(true);
 
     // 현재 챌린지 정보 가져오기
     useEffect(() => {
@@ -195,7 +198,7 @@ const Community = () => {
 
                 setIsLoggedIn(true);
                 const response = await getCurrentChallenge(token);
-                setCurrentChallenge(response.challenge);
+                setCurrentChallenge(response.userChallenge);
             } catch (error) {
                 console.error('챌린지 조회 실패:', error);
                 setCurrentChallenge(null);
@@ -205,6 +208,68 @@ const Community = () => {
         };
 
         fetchCurrentChallenge();
+
+        // 페이지가 다시 보일 때마다 데이터 새로고침
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                fetchCurrentChallenge();
+            }
+        };
+
+        const handleFocus = () => {
+            fetchCurrentChallenge();
+        };
+
+        // 이벤트 리스너 등록
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        // 클린업
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, []);
+
+    // 사용자 정보 및 통계 가져오기
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                setProfileLoading(true);
+                const token = getToken();
+
+                if (!token) {
+                    setProfileLoading(false);
+                    return;
+                }
+
+                // 사용자 프로필과 통계 동시에 가져오기
+                const [profileResponse, statsResponse] = await Promise.all([
+                    getMyProfile(token).catch(err => {
+                        console.error('프로필 조회 실패:', err);
+                        return null;
+                    }),
+                    getChallengeStats(token).catch(err => {
+                        console.error('통계 조회 실패:', err);
+                        return null;
+                    })
+                ]);
+
+                if (profileResponse && profileResponse.user) {
+                    setUserProfile(profileResponse.user);
+                }
+
+                if (statsResponse && statsResponse.stats) {
+                    setUserStats(statsResponse.stats);
+                }
+            } catch (error) {
+                console.error('사용자 데이터 조회 실패:', error);
+            } finally {
+                setProfileLoading(false);
+            }
+        };
+
+        fetchUserData();
     }, []);
 
     // 챌린지 페이지로 이동
@@ -342,91 +407,103 @@ const Community = () => {
                                     <Card className="bg-[#fffffff2] border-[0.67px] border-[#0000001a] rounded-[14px]">
                                         <CardContent className="p-6">
                                             <h2 className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e] text-base tracking-[0] leading-4 mb-6">
-                                                나의 현재 순위
+                                                나의 프로필
                                             </h2>
 
-                                            <div className="flex flex-col gap-6">
-                                                <div className="flex flex-col items-center gap-4">
-                                                    <div className="flex items-center justify-center w-20 h-20 bg-green-100 rounded-full">
-                                                        <span className="[font-family:'Nunito',Helvetica] font-normal text-neutral-950 text-3xl text-center tracking-[0] leading-9">
-                                                            🌱
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="[font-family:'Nunito',Helvetica] font-normal text-neutral-950 text-2xl text-center tracking-[0] leading-8">
-                                                            그린워리어
-                                                        </span>
-                                                        <Badge className="bg-green-100 text-[#008235] border-transparent hover:bg-green-100">
-                                                            <span className="[font-family:'Nunito',Helvetica] font-medium text-xs">
-                                                                Lv.8
-                                                            </span>
-                                                        </Badge>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-8 w-full">
-                                                        <div className="flex flex-col items-center gap-1">
-                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e] text-2xl text-center tracking-[0] leading-8">
-                                                                12위
-                                                            </span>
-                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
-                                                                서울 강남구
-                                                            </span>
-                                                        </div>
-
-                                                        <div className="flex flex-col items-center gap-1">
-                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-[#155cfb] text-2xl text-center tracking-[0] leading-8">
-                                                                2,450
-                                                            </span>
-                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
-                                                                포인트
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                            {profileLoading ? (
+                                                <div className="flex items-center justify-center py-12">
+                                                    <div className="text-2xl">⏳</div>
+                                                    <p className="ml-2 text-gray-600">로딩 중...</p>
                                                 </div>
+                                            ) : !isLoggedIn || !userProfile ? (
+                                                <div className="flex flex-col items-center gap-4 py-8">
+                                                    <div className="text-4xl">🌱</div>
+                                                    <p className="text-gray-600">로그인하고 프로필을 확인하세요!</p>
+                                                </div>
+                                            ) : (<>
+                                                <div className="flex flex-col gap-6">
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <div className="flex items-center justify-center w-20 h-20 bg-green-100 rounded-full">
+                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-neutral-950 text-3xl text-center tracking-[0] leading-9">
+                                                                🌱
+                                                            </span>
+                                                        </div>
 
-                                                <div className="flex flex-col gap-3">
-                                                    <h3 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base tracking-[0] leading-6">
-                                                        보유 뱃지
-                                                    </h3>
-
-                                                    <div className="grid grid-cols-3 gap-3">
-                                                        {userBadgesData.map((badge, index) => (
-                                                            <div
-                                                                key={index}
-                                                                className={`flex flex-col items-center gap-1 p-3 ${badge.bg} rounded-[10px]`}
-                                                            >
-                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-neutral-950 text-2xl text-center tracking-[0] leading-8">
-                                                                    {badge.emoji}
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-neutral-950 text-2xl text-center tracking-[0] leading-8">
+                                                                {userProfile.nickname || '비건러버'}
+                                                            </span>
+                                                            <Badge className="bg-green-100 text-[#008235] border-transparent hover:bg-green-100">
+                                                                <span className="[font-family:'Nunito',Helvetica] font-medium text-xs">
+                                                                    Lv.{userProfile.level || 1}
                                                                 </span>
-                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-xs text-center tracking-[0] leading-4">
-                                                                    {badge.label}
+                                                            </Badge>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-8 w-full">
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e] text-2xl text-center tracking-[0] leading-8">
+                                                                    {userStats?.currentStreak || 0}일
+                                                                </span>
+                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
+                                                                    연속 달성
                                                                 </span>
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
 
-                                                <div className="flex flex-col gap-3">
-                                                    <h3 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base tracking-[0] leading-6">
-                                                        다음 레벨까지
-                                                    </h3>
-
-                                                    <div className="flex items-center justify-between text-sm">
-                                                        <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
-                                                            Lv.8
-                                                        </span>
-                                                        <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
-                                                            550/1000 XP
-                                                        </span>
-                                                        <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
-                                                            Lv.9
-                                                        </span>
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-[#155cfb] text-2xl text-center tracking-[0] leading-8">
+                                                                    {userStats?.currentPoints || userProfile.points || 0}
+                                                                </span>
+                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
+                                                                    포인트
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
 
-                                                    <Progress value={55} className="h-2" />
+                                                    <div className="flex flex-col gap-3">
+                                                        <h3 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base tracking-[0] leading-6">
+                                                            보유 뱃지
+                                                        </h3>
+
+                                                        <div className="grid grid-cols-3 gap-3">
+                                                            {userBadgesData.map((badge, index) => (
+                                                                <div
+                                                                    key={index}
+                                                                    className={`flex flex-col items-center gap-1 p-3 ${badge.bg} rounded-[10px]`}
+                                                                >
+                                                                    <span className="[font-family:'Nunito',Helvetica] font-normal text-neutral-950 text-2xl text-center tracking-[0] leading-8">
+                                                                        {badge.emoji}
+                                                                    </span>
+                                                                    <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-xs text-center tracking-[0] leading-4">
+                                                                        {badge.label}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-col gap-3">
+                                                        <h3 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base tracking-[0] leading-6">
+                                                            다음 레벨까지
+                                                        </h3>
+
+                                                        <div className="flex items-center justify-between text-sm">
+                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
+                                                                Lv.{userProfile.level || 1}
+                                                            </span>
+                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
+                                                                {userProfile.points || 0}/1000 XP
+                                                            </span>
+                                                            <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
+                                                                Lv.{(userProfile.level || 1) + 1}
+                                                            </span>
+                                                        </div>
+
+                                                        <Progress value={((userProfile.points || 0) / 1000) * 100} className="h-2" />
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            </>)}
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -609,7 +686,7 @@ const Community = () => {
                                                     <div className="flex flex-col gap-4">
                                                         <div className="text-3xl text-center">
                                                             {currentChallenge.difficulty === 'easy' ? '🌱' :
-                                                             currentChallenge.difficulty === 'medium' ? '🌿' : '🌳'}
+                                                                currentChallenge.difficulty === 'medium' ? '🌿' : '🌳'}
                                                         </div>
 
                                                         <h4 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base text-center tracking-[0] leading-6">
@@ -642,7 +719,7 @@ const Community = () => {
                                                             </span>
                                                             <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
                                                                 난이도: {currentChallenge.difficulty === 'easy' ? '쉬움' :
-                                                                        currentChallenge.difficulty === 'medium' ? '보통' : '어려움'}
+                                                                    currentChallenge.difficulty === 'medium' ? '보통' : '어려움'}
                                                             </span>
                                                         </div>
 
@@ -691,141 +768,188 @@ const Community = () => {
 
                             {/* --- 챌린지 탭 내용 --- */}
                             <TabsContent value="challenge">
-                                <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 ">
+                                <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* 진행 중인 챌린지 */}
                                     <Card className="bg-[#fffffff2] border-[0.67px] border-[#0000001a] rounded-[14px]">
                                         <CardContent className="p-6">
-                                            <h2 className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#00a63e] text-base leading-4 mb-6">
+                                            <h2 className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e] text-base leading-4 mb-6">
                                                 진행 중인 챌린지
                                             </h2>
 
-                                            <div className="space-y-4">
-                                                <Card className="border-[0.67px] border-[#b8f7cf] rounded-[10px]">
-                                                    <CardContent className="p-4 space-y-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <h3 className="[font-family:'Nunito-SemiBold',Helvetica] font-semibold text-neutral-950 text-base leading-6">
-                                                                30일 비건 챌린지
-                                                            </h3>
-                                                            <Badge className="bg-green-100 text-[#008235] border-[0.67px] border-transparent hover:bg-green-100">
-                                                                <span className="[font-family:'Nunito-Medium',Helvetica] font-medium text-xs leading-4">
-                                                                    진행중
+                                            {challengeLoading ? (
+                                                // 로딩 중
+                                                <div className="flex flex-col gap-4 items-center py-12">
+                                                    <div className="text-2xl">⏳</div>
+                                                    <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm">
+                                                        로딩 중...
+                                                    </p>
+                                                </div>
+                                            ) : !isLoggedIn ? (
+                                                // 로그인 안 함
+                                                <div className="flex flex-col gap-4 items-center py-8">
+                                                    <div className="text-4xl">🌱</div>
+                                                    <h4 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base text-center tracking-[0] leading-6">
+                                                        로그인하고 챌린지를 시작하세요!
+                                                    </h4>
+                                                    <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
+                                                        비건 여정을 함께 시작해볼까요?
+                                                    </p>
+                                                    <Button
+                                                        onClick={goToChallenge}
+                                                        className="w-full bg-[#00a63e] text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2 hover:bg-[#008235] transition-colors"
+                                                    >
+                                                        챌린지 페이지로 이동
+                                                    </Button>
+                                                </div>
+                                            ) : !currentChallenge ? (
+                                                // 진행 중인 챌린지 없음
+                                                <div className="flex flex-col gap-4 items-center py-8">
+                                                    <div className="text-4xl">🎯</div>
+                                                    <h4 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base text-center tracking-[0] leading-6">
+                                                        새로운 챌린지를 시작해보세요!
+                                                    </h4>
+                                                    <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
+                                                        다양한 비건 챌린지에 도전해보세요!
+                                                    </p>
+                                                    <Button
+                                                        onClick={goToChallenge}
+                                                        className="w-full bg-[#00a63e] text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2 hover:bg-[#008235] transition-colors"
+                                                    >
+                                                        챌린지 시작하기
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                // 진행 중인 챌린지 있음
+                                                <div className="space-y-4">
+                                                    <Card className="border-[0.67px] border-[#b8f7cf] rounded-[10px]">
+                                                        <CardContent className="p-4 space-y-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <h3 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base leading-6">
+                                                                    {currentChallenge.title}
+                                                                </h3>
+                                                                <Badge className="bg-green-100 text-[#008235] border-[0.67px] border-transparent hover:bg-green-100">
+                                                                    <span className="[font-family:'Nunito',Helvetica] font-medium text-xs leading-4">
+                                                                        진행중
+                                                                    </span>
+                                                                </Badge>
+                                                            </div>
+
+                                                            {currentChallenge.description && (
+                                                                <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm leading-5">
+                                                                    {currentChallenge.description}
+                                                                </p>
+                                                            )}
+
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm leading-5">
+                                                                    진행률
                                                                 </span>
-                                                            </Badge>
-                                                        </div>
+                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm leading-5">
+                                                                    {currentChallenge.currentDay || 0}/{currentChallenge.totalDays || currentChallenge.duration || 30}일
+                                                                </span>
+                                                            </div>
 
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#495565] text-sm leading-5">
-                                                                진행률
-                                                            </span>
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#495565] text-sm leading-5">
-                                                                12/30일
-                                                            </span>
-                                                        </div>
+                                                            <Progress value={currentChallenge.progress || 0} className="h-2 bg-[#03021333]" />
 
-                                                        <Progress value={40} className="h-2 bg-[#03021333]" />
+                                                            <div className="flex items-center gap-4">
+                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e] text-sm leading-5">
+                                                                    🔥 {userStats?.currentStreak || 0}일 연속
+                                                                </span>
+                                                                <span className="[font-family:'Nunito',Helvetica] font-normal text-[#155cfb] text-sm leading-5">
+                                                                    ⭐ {currentChallenge.points || 0}pts
+                                                                </span>
+                                                            </div>
 
-                                                        <div className="flex items-center gap-4">
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#00a63e] text-sm leading-5">
-                                                                🔥 12일 연속
-                                                            </span>
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#155cfb] text-sm leading-5">
-                                                                ⭐ 360pts
-                                                            </span>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <Card className="border-[0.67px] border-[#ffd6a7] rounded-[10px]">
-                                                    <CardContent className="p-4 space-y-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <h3 className="[font-family:'Nunito-SemiBold',Helvetica] font-semibold text-neutral-950 text-base leading-6">
-                                                                주간 레시피 챌린지
-                                                            </h3>
-                                                            <Badge
-                                                                variant="outline"
-                                                                className="border-[#f44900] text-[#f44900] hover:bg-transparent"
+                                                            <Button
+                                                                onClick={goToChallenge}
+                                                                className="w-full h-auto bg-[#00a63e] hover:bg-[#008235] text-white rounded-lg transition-colors"
                                                             >
-                                                                <span className="[font-family:'Nunito-Medium',Helvetica] font-medium text-xs leading-4">
-                                                                    새로운
+                                                                <span className="[font-family:'Nunito',Helvetica] font-medium text-sm leading-5">
+                                                                    챌린지 상세보기
                                                                 </span>
-                                                            </Badge>
-                                                        </div>
-
-                                                        <p className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#495565] text-sm leading-5">
-                                                            일주일 동안 매일 다른 비건 레시피를 시도해보세요!
-                                                        </p>
-
-                                                        <Button className="w-full h-auto bg-[#f44900] hover:bg-[#f44900]/90 text-white rounded-lg">
-                                                            <span className="[font-family:'Nunito-Medium',Helvetica] font-medium text-sm leading-5">
-                                                                참여하기
-                                                            </span>
-                                                        </Button>
-                                                    </CardContent>
-                                                </Card>
-                                            </div>
+                                                            </Button>
+                                                        </CardContent>
+                                                    </Card>
+                                                </div>
+                                            )}
                                         </CardContent>
                                     </Card>
 
+                                    {/* 완료된 챌린지 */}
                                     <Card className="bg-[#fffffff2] border-[0.67px] border-[#0000001a] rounded-[14px]">
                                         <CardContent className="p-6">
-                                            <h2 className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#00a63e] text-base leading-4 mb-6">
+                                            <h2 className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e] text-base leading-4 mb-6">
                                                 완료된 챌린지
                                             </h2>
 
-                                            <div className="space-y-4">
-                                                <Card className="bg-gray-50 border rounded-[10px]">
-                                                    <CardContent className="p-4 space-y-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <h3 className="[font-family:'Nunito-SemiBold',Helvetica] font-semibold text-[#354152] text-base leading-6">
-                                                                1주일 비건 입문
-                                                            </h3>
-                                                            <Badge className="bg-green-100 text-[#008235] border-[0.67px] border-transparent hover:bg-green-100">
-                                                                <span className="[font-family:'Nunito-Medium',Helvetica] font-medium text-xs leading-4">
-                                                                    완료
-                                                                </span>
-                                                            </Badge>
-                                                        </div>
+                                            {profileLoading ? (
+                                                // 로딩 중
+                                                <div className="flex flex-col gap-4 items-center py-12">
+                                                    <div className="text-2xl">⏳</div>
+                                                    <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm">
+                                                        로딩 중...
+                                                    </p>
+                                                </div>
+                                            ) : !isLoggedIn ? (
+                                                // 로그인 안 함
+                                                <div className="flex flex-col gap-4 items-center py-8">
+                                                    <div className="text-4xl">🏆</div>
+                                                    <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
+                                                        로그인하고 완료한 챌린지를 확인하세요!
+                                                    </p>
+                                                </div>
+                                            ) : userStats?.completedChallenges && userStats.completedChallenges.length > 0 ? (
+                                                // 완료된 챌린지 목록
+                                                <div className="space-y-4">
+                                                    {userStats.completedChallenges.map((challenge, index) => (
+                                                        <Card key={index} className="bg-gray-50 border rounded-[10px]">
+                                                            <CardContent className="p-4 space-y-3">
+                                                                <div className="flex items-center justify-between">
+                                                                    <h3 className="[font-family:'Nunito',Helvetica] font-semibold text-[#354152] text-base leading-6">
+                                                                        {challenge.title}
+                                                                    </h3>
+                                                                    <Badge className="bg-green-100 text-[#008235] border-[0.67px] border-transparent hover:bg-green-100">
+                                                                        <span className="[font-family:'Nunito',Helvetica] font-medium text-xs leading-4">
+                                                                            완료
+                                                                        </span>
+                                                                    </Badge>
+                                                                </div>
 
-                                                        <div className="flex items-center gap-4">
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#495565] text-sm leading-5">
-                                                                ✅ 7/7일 완료
-                                                            </span>
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#00a63e] text-sm leading-5">
-                                                                +500pts
-                                                            </span>
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#495565] text-sm leading-5">
-                                                                🥉 입문자 뱃지 획득
-                                                            </span>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-
-                                                <Card className="bg-gray-50 border rounded-[10px]">
-                                                    <CardContent className="p-4 space-y-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <h3 className="[font-family:'Nunito-SemiBold',Helvetica] font-semibold text-[#354152] text-base leading-6">
-                                                                건강한 아침식사
-                                                            </h3>
-                                                            <Badge className="bg-green-100 text-[#008235] border-[0.67px] border-transparent hover:bg-green-100">
-                                                                <span className="[font-family:'Nunito-Medium',Helvetica] font-medium text-xs leading-4">
-                                                                    완료
-                                                                </span>
-                                                            </Badge>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-4">
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#495565] text-sm leading-5">
-                                                                ✅ 5/5일 완료
-                                                            </span>
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#00a63e] text-sm leading-5">
-                                                                +250pts
-                                                            </span>
-                                                            <span className="[font-family:'Nunito-Regular',Helvetica] font-normal text-[#495565] text-sm leading-5">
-                                                                💪 건강지킴이 뱃지 획득
-                                                            </span>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            </div>
+                                                                <div className="flex items-center gap-4 flex-wrap">
+                                                                    <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm leading-5">
+                                                                        ✅ {challenge.completedDays || challenge.duration}/{challenge.duration || challenge.totalDays}일 완료
+                                                                    </span>
+                                                                    <span className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e] text-sm leading-5">
+                                                                        +{challenge.earnedPoints || challenge.points}pts
+                                                                    </span>
+                                                                    {challenge.badge && (
+                                                                        <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm leading-5">
+                                                                            {challenge.badge} 뱃지 획득
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </CardContent>
+                                                        </Card>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                // 완료된 챌린지 없음
+                                                <div className="flex flex-col gap-4 items-center py-8">
+                                                    <div className="text-4xl">📝</div>
+                                                    <h4 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base text-center tracking-[0] leading-6">
+                                                        아직 완료한 챌린지가 없어요
+                                                    </h4>
+                                                    <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
+                                                        첫 챌린지를 완료하고 뱃지를 획득해보세요!
+                                                    </p>
+                                                    <Button
+                                                        onClick={goToChallenge}
+                                                        className="w-full bg-[#00a63e] text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2 hover:bg-[#008235] transition-colors"
+                                                    >
+                                                        챌린지 시작하기
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 </section>
