@@ -11,13 +11,15 @@ import Community from "../pages/community/Community";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/user/Login"; //로그인 페이지 라우트용 임포트
 import SignUp from "../pages/user/SignUp.jsx"; //회원가입 페이지
+import MyPage from "../pages/user/MyPage.jsx"; // 마이페이지 추가
+import ProtectedRoute from "./ProtectedRoute";
+import ForgotPassword from "../pages/user/ForgotPassword.jsx"; // [추가] 비밀번호 찾기 페이지
 
 // Challenge Main Components import (경로 수정!)
 import MealContainer from "../pages/challenge/mainComponents/todaysMealTab/MealContainer";
 import ProgressContainer from "../pages/challenge/mainComponents/progressTab/ProgressContainer";
 import RecipeTab from "../pages/challenge/mainComponents/challengeContent/RecipeTab";
 import ShoppingTab from "../pages/challenge/mainComponents/challengeContent/ShoppingTab";
-
 
 const router = createBrowserRouter([
     {
@@ -54,8 +56,20 @@ const router = createBrowserRouter([
                 element: <Login />, //login 라우트 추가
             },
             {
+                path: "forgot-password",
+                element: <ForgotPassword /> //비번찾기
+            },
+            {
                 path: "signup",
                 element: <SignUp />, //signup 라우트
+            },
+            {
+                path: "mypage",
+                element: (
+                    <ProtectedRoute>
+                        <MyPage />
+                    </ProtectedRoute>
+                ),
             },
             {
                 path: "challenge/main",
