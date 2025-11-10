@@ -1,4 +1,5 @@
 // src/components/layout/Layout.jsx
+import React, { useState } from 'react'; //추가
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
