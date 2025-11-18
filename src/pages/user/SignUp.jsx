@@ -18,6 +18,7 @@ import {
 
 // lucide-react 아이콘 불러오기
 import { Leaf, Mail, Lock, Eye, EyeOff, User, CheckCircle2, MapPin } from "lucide-react";
+import { signup, saveToken, saveUser } from "../../api/backend";
 
 export default function SignUp() {
   // 폼 상태 관리 (입력값 저장)
@@ -27,6 +28,7 @@ export default function SignUp() {
     password: "",          // 비밀번호
     confirmPassword: "",   // 비밀번호 확인
     address: "",           // 주소 (추가됨)
+    veganType: "flexitarian", // 비건 타입 (기본값)
   });
 
   // 각종 토글 상태
@@ -34,6 +36,7 @@ export default function SignUp() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [error, setError] = useState("");
 
   // 페이지 이동용 navigate
   const navigate = useNavigate();
@@ -48,29 +51,57 @@ export default function SignUp() {
 
   const strength = passwordStrength(formData.password);
 
-  // 제출 이벤트
-  const handleSubmit = (e) => {
+  // 제출 이벤트 - 백엔드 API 호출
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     // 비밀번호 확인
     if (formData.password !== formData.confirmPassword) {
-      alert("비밀번호가 일치하지 않습니다.");
+      setError("비밀번호가 일치하지 않습니다.");
       return;
     }
 
     // 약관 동의 확인
     if (!agreedToTerms) {
-      alert("이용약관에 동의해주세요.");
+      setError("이용약관에 동의해주세요.");
       return;
     }
 
-    // 회원가입 시뮬레이션
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      // 백엔드 API 호출
+      const response = await signup({
+        email: formData.email.trim(),
+        password: formData.password,
+        nickname: formData.name.trim(),
+        veganType: formData.veganType || "flexitarian",
+      });
+
+      // 토큰과 사용자 정보 저장
+      if (response.token) {
+        saveToken(response.token);
+      }
+      if (response.user) {
+        saveUser(response.user);
+        // 기존 auth 형식도 유지 (호환성)
+        localStorage.setItem("auth", JSON.stringify({ 
+          email: response.user.email, 
+          name: response.user.nickname || response.user.name 
+        }));
+      }
+
+      alert("회원가입이 완료되었습니다! 자동으로 로그인되었습니다.");
+      navigate("/"); // 홈으로 이동
+    } catch (err) {
+      console.error("회원가입 실패:", err);
+      const errorMessage = err.message || "회원가입 중 오류가 발생했습니다.";
+      setError(errorMessage);
+      alert(`회원가입 실패: ${errorMessage}`);
+    } finally {
       setIsLoading(false);
-      alert("회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.");
-      navigate("/login");
-    }, 1000);
+    }
   };
 
   return (
@@ -248,6 +279,13 @@ export default function SignUp() {
                   </span>
                 </label>
               </div>
+
+              {/* 에러 메시지 */}
+              {error && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-sm text-red-600 text-center">{error}</p>
+                </div>
+              )}
 
               {/* 회원가입 버튼 */}
               <Button

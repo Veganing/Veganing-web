@@ -66,18 +66,32 @@ export const apiClient = {
 
   // POST 요청
   post: async (url, data, token = null) => {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: getDefaultHeaders(token),
-      body: JSON.stringify(data),
-    });
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: getDefaultHeaders(token),
+        body: JSON.stringify(data),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'API 요청 실패');
+      if (!response.ok) {
+        let errorMessage = 'API 요청 실패';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return response.json();
+    } catch (error) {
+      // 네트워크 에러나 기타 에러 처리
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.');
+      }
+      throw error;
     }
-
-    return response.json();
   },
 
   // PUT 요청
