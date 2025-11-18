@@ -17,12 +17,7 @@ import {
 } from "../../components/ui/card";
 
 import { Leaf, Mail, Lock, Eye, EyeOff } from "lucide-react";
-
-// 1) 하드코딩(로컬) 유저 목록 — 필요하면 자유롭게 추가/수정
-const SEED_USERS = [
-    { email: "vegan@example.com", password: "vegan1234", name: "김비건" },
-    { email: "test@example.com",  password: "test1234",  name: "테스터"  },
-];
+import { login, saveToken, saveUser } from "../../api/backend";
 
 function Login({ onSignupClick, onLoginSuccess }) {
     const navigate = useNavigate();
@@ -32,41 +27,46 @@ function Login({ onSignupClick, onLoginSuccess }) {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("");
 
-    // 2) 간단한 로컬 로그인 검증 함수
-    const verifyLocalUser = (email, password) => {
-        const found = SEED_USERS.find(u => u.email === email && u.password === password);
-        return found || null;
-    };
-
-    // 3) 제출 처리
+    // 제출 처리 - 백엔드 API 호출
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isLoading) return;
+        
+        setError("");
         setIsLoading(true);
 
         try {
-            // (a) 하드코딩된 유저로 검증
-            const user = verifyLocalUser(email.trim(), password);
+            // 백엔드 API 호출
+            const response = await login({
+                email: email.trim(),
+                password: password,
+            });
 
-            if (!user) {
-                alert("이메일 또는 비밀번호가 올바르지 않습니다.");
-                return;
+            // 토큰과 사용자 정보 저장
+            if (response.token) {
+                saveToken(response.token);
+            }
+            if (response.user) {
+                saveUser(response.user);
+                // 기존 auth 형식도 유지 (호환성)
+                localStorage.setItem("auth", JSON.stringify({ 
+                    email: response.user.email, 
+                    name: response.user.nickname || response.user.name 
+                }));
             }
 
-            // (b) 로그인 성공 시 로컬스토리지에 저장
-            //     Header.jsx가 localStorage('auth')를 참고하므로 여기서 반드시 저장
-            localStorage.setItem("auth", JSON.stringify({ email: user.email, name: user.name }));
-
-            // (c) 필요 시 상위 콜백 호출
+            // 필요 시 상위 콜백 호출
             if (typeof onLoginSuccess === "function") onLoginSuccess();
 
             alert("로그인에 성공하셨습니다!");
-
-            navigate("/");  //로그인 성공 시 홈으로 이동
+            navigate("/");  // 로그인 성공 시 홈으로 이동
         } catch (err) {
-            console.error(err);
-            alert("로그인 중 오류가 발생했습니다.");
+            console.error("로그인 실패:", err);
+            const errorMessage = err.message || "로그인 중 오류가 발생했습니다.";
+            setError(errorMessage);
+            alert(`로그인 실패: ${errorMessage}`);
         } finally {
             setIsLoading(false);
         }
@@ -156,6 +156,13 @@ function Login({ onSignupClick, onLoginSuccess }) {
                                 비밀번호 찾기
                                 </button>
                             </div>
+
+                            {/* 에러 메시지 */}
+                            {error && (
+                                <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                                    <p className="text-sm text-red-600 text-center">{error}</p>
+                                </div>
+                            )}
 
                             {/* 버튼 */}
                             <Button
