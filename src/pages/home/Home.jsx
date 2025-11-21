@@ -1,10 +1,13 @@
-// src/pages/Home.jsx
+import HeroSection from "./components/HeroSection";
+import WhatIsVegan from "./components/WhatIsVegan";
 function Home() {
     return (
-        <div>
-            홈
-        </div>
+        <>
+            <HeroSection />
+            <WhatIsVegan />
+        </>
     );
 }
 
 export default Home;
+
