@@ -270,3 +270,16 @@ export const logout = () => {
   removeToken();
   removeUser();
 };
+
+// ==========================================
+// 홈 화면 Hero 데이터 API
+// ==========================================
+
+/**
+ * 홈 히어로 섹션 데이터 조회
+ * @param {string} token - JWT 토큰
+ * @returns {Promise<Object>} - { images, participants, successRate, satisfaction }
+ */
+export const getHomeHeroData = async (token) => {
+  return await apiClient.get(API_ENDPOINTS.HOME.HERO, token);
+};
