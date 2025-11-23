@@ -4,7 +4,7 @@ import { Button } from "./components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/Card";
 import { Input } from "./components/ui/Input";
 import { Badge } from "./components/ui/Badge";
-import { ImageIcon, X, Hash } from "lucide-react";
+import { ImageIcon, X, Hash, Upload } from "lucide-react";
 import { createPost, getToken } from "../../api/backend";
 
 const CreatePost = () => {
@@ -12,8 +12,49 @@ const CreatePost = () => {
     const [content, setContent] = useState("");
     const [hashtags, setHashtags] = useState("");
     const [imageUrl, setImageUrl] = useState("");
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState("");
     const [category, setCategory] = useState("story");
     const [isLoading, setIsLoading] = useState(false);
+
+    // 파일 선택 핸들러
+    const handleFileSelect = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // 이미지 파일인지 확인
+        if (!file.type.startsWith('image/')) {
+            alert("이미지 파일만 업로드 가능합니다.");
+            return;
+        }
+
+        // 파일 크기 제한 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert("이미지 크기는 5MB 이하여야 합니다.");
+            return;
+        }
+
+        setImageFile(file);
+        
+        // 미리보기 생성
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setImagePreview(reader.result);
+            // Base64 데이터를 imageUrl로 설정
+            setImageUrl(reader.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // 이미지 제거 핸들러
+    const handleRemoveImage = () => {
+        setImageFile(null);
+        setImagePreview("");
+        setImageUrl("");
+        // 파일 input 초기화
+        const fileInput = document.getElementById('image-file-input');
+        if (fileInput) fileInput.value = '';
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -37,6 +78,7 @@ const CreatePost = () => {
                 .filter((tag) => tag.startsWith("#"))
                 .map((tag) => tag.trim());
 
+            // imageUrl이 있으면 사용 (파일 업로드 시 Base64, URL 입력 시 URL)
             const postData = {
                 content: content.trim(),
                 category: category,
@@ -46,7 +88,10 @@ const CreatePost = () => {
             const response = await createPost(postData, token);
             console.log("게시글 작성 성공:", response);
             alert("게시글이 작성되었습니다!");
-            navigate("/community");
+            // 커뮤니티 페이지로 이동하면서 리프레시 트리거
+            navigate("/community", { replace: true });
+            // 페이지 새로고침으로 최신 게시글 반영
+            window.location.reload();
         } catch (error) {
             console.error("게시글 작성 실패:", error);
             // 더 자세한 에러 메시지 표시
@@ -122,19 +167,70 @@ const CreatePost = () => {
                                     />
                                 </div>
 
-                                {/* 이미지 URL 입력 (선택사항) */}
+                                {/* 이미지 업로드 */}
                                 <div className="flex flex-col gap-2">
                                     <label className="[font-family:'Nunito',Helvetica] font-medium text-[#495565] text-sm flex items-center gap-2">
                                         <ImageIcon className="w-4 h-4" />
-                                        이미지 URL (선택사항)
+                                        이미지 (선택사항)
                                     </label>
-                                    <Input
-                                        type="url"
-                                        value={imageUrl}
-                                        onChange={(e) => setImageUrl(e.target.value)}
-                                        placeholder="https://example.com/image.jpg"
-                                        className="rounded-lg"
-                                    />
+                                    
+                                    {/* 파일 선택 버튼 */}
+                                    {!imagePreview && (
+                                        <div className="flex flex-col gap-2">
+                                            <label
+                                                htmlFor="image-file-input"
+                                                className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#00a63e] hover:bg-green-50 transition-colors"
+                                            >
+                                                <Upload className="w-5 h-5 text-[#495565]" />
+                                                <span className="[font-family:'Nunito',Helvetica] font-medium text-[#495565] text-sm">
+                                                    이미지 파일 선택 (최대 5MB)
+                                                </span>
+                                            </label>
+                                            <input
+                                                id="image-file-input"
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileSelect}
+                                                className="hidden"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* 이미지 미리보기 */}
+                                    {imagePreview && (
+                                        <div className="relative">
+                                            <img
+                                                src={imagePreview}
+                                                alt="미리보기"
+                                                className="w-full h-auto max-h-96 object-contain rounded-lg border-2 border-gray-200"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={handleRemoveImage}
+                                                className="absolute top-2 right-2 bg-white hover:bg-gray-100 rounded-full shadow-lg"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {/* 또는 URL 입력 */}
+                                    {!imagePreview && (
+                                        <div className="mt-2">
+                                            <p className="[font-family:'Nunito',Helvetica] font-normal text-[#697282] text-xs mb-2 text-center">
+                                                또는
+                                            </p>
+                                            <Input
+                                                type="url"
+                                                value={imageUrl}
+                                                onChange={(e) => setImageUrl(e.target.value)}
+                                                placeholder="https://example.com/image.jpg"
+                                                className="rounded-lg"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* 해시태그 입력 */}

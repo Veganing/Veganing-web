@@ -1,8 +1,9 @@
 // 위치: src/pages/user/MyPage.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
+import { getMyProfile, getChallengeStats, getPosts, updateProfile, getToken } from "../../api/backend";
 
 import {
   Card,
@@ -90,12 +91,16 @@ export default function MyPage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
 
   const [userData, setUserData] = useState({
-    name: "김비건",
-    email: "vegan@example.com",
-    address: "서울시 강남구 비건로 123",
-    joinDate: "2024.01.15",
+    name: "",
+    email: "",
+    address: "서울시 강남구 비건로 123", // 주소는 백엔드에 없으므로 기본값 유지
+    joinDate: "",
   });
 
   const [editData, setEditData] = useState({ ...userData });
@@ -110,13 +115,15 @@ export default function MyPage() {
     confirm: false,
   });
 
-  const stats = {
-    totalDays: 45,
-    consecutiveDays: 12,
-    carbonSaved: 234.5,
-    postsCount: 38,
-    challengesCompleted: 3,
-  };
+  const [stats, setStats] = useState({
+    totalDays: 0,
+    consecutiveDays: 0,
+    carbonSaved: 234.5, // CO2 절감은 백엔드에 없으므로 기본값 유지
+    postsCount: 0,
+    challengesCompleted: 0,
+  });
+
+  const [recentPosts, setRecentPosts] = useState([]);
 
   const badges = [
     { id: 1, name: "첫 걸음", icon: Star, color: "text-yellow-600", bgColor: "bg-yellow-100", earned: true, description: "첫 챌린지 시작" },
@@ -135,17 +142,6 @@ export default function MyPage() {
     { rank: 5, name: "정우진", region: "강남구", score: 765, avatar: "JW" },
   ];
 
-  const recentPosts = [
-    { date: "2024.10.24", title: "오늘의 비건 브런치", likes: 24, comments: 5 },
-    { date: "2024.10.23", title: "비건 김치찌개 도전!", likes: 31, comments: 8 },
-    { date: "2024.10.22", title: "새로운 비건 카페 발견", likes: 19, comments: 3 },
-  ];
-
-  const handleSaveProfile = () => {
-    setUserData({ ...editData });
-    setIsEditing(false);
-  };
-
   const handleCancelEdit = () => {
     setEditData({ ...userData });
     setIsEditing(false);
@@ -162,6 +158,148 @@ export default function MyPage() {
   };
 
   const [activeTab, setActiveTab] = useState("badges");
+
+  // 사용자 프로필 로드
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const token = getToken();
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        const response = await getMyProfile(token);
+        if (response.user) {
+          const user = response.user;
+          const joinDate = user.createdAt 
+            ? new Date(user.createdAt).toLocaleDateString("ko-KR", { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/\s/g, '')
+            : "";
+          
+          setUserData({
+            name: user.nickname || user.name || "",
+            email: user.email || "",
+            address: "서울시 강남구 비건로 123", // 주소는 백엔드에 없으므로 기본값 유지
+            joinDate: joinDate,
+          });
+          setEditData({
+            name: user.nickname || user.name || "",
+            email: user.email || "",
+            address: "서울시 강남구 비건로 123",
+            joinDate: joinDate,
+          });
+        }
+      } catch (error) {
+        console.error("프로필 조회 실패:", error);
+        alert("프로필을 불러오는데 실패했습니다.");
+      } finally {
+        setProfileLoading(false);
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [navigate]);
+
+  // 챌린지 통계 로드
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setStatsLoading(true);
+        const token = getToken();
+        if (!token) return;
+
+        const response = await getChallengeStats(token);
+        if (response.stats) {
+          setStats(prev => ({
+            ...prev,
+            totalDays: response.stats.currentStreak || 0,
+            consecutiveDays: response.stats.currentStreak || 0,
+            challengesCompleted: response.stats.completed || 0,
+          }));
+        }
+      } catch (error) {
+        console.error("통계 조회 실패:", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // 최근 게시글 로드
+  useEffect(() => {
+    const fetchMyPosts = async () => {
+      try {
+        setPostsLoading(true);
+        const token = getToken();
+        if (!token) return;
+
+        // 모든 게시글을 가져온 후 프론트엔드에서 필터링
+        const response = await getPosts({ limit: 100 });
+        if (response.posts) {
+          // 현재 사용자 ID 가져오기
+          const userResponse = await getMyProfile(token);
+          const currentUserId = userResponse.user?.id;
+
+          if (currentUserId) {
+            // 본인 게시글만 필터링하고 최신순으로 정렬
+            const myPosts = response.posts
+              .filter(post => post.author?.id === currentUserId)
+              .slice(0, 5) // 최근 5개만
+              .map(post => ({
+                id: post.id,
+                date: new Date(post.createdAt).toLocaleDateString("ko-KR", { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/\s/g, ''),
+                title: post.content.length > 20 ? post.content.substring(0, 20) + "..." : post.content,
+                likes: post.likes || 0,
+                comments: post.commentCount || 0,
+              }));
+            
+            setRecentPosts(myPosts);
+            setStats(prev => ({
+              ...prev,
+              postsCount: response.posts.filter(post => post.author?.id === currentUserId).length,
+            }));
+          }
+        }
+      } catch (error) {
+        console.error("게시글 조회 실패:", error);
+      } finally {
+        setPostsLoading(false);
+      }
+    };
+
+    fetchMyPosts();
+  }, []);
+
+  const handleSaveProfile = async () => {
+    try {
+      const token = getToken();
+      if (!token) {
+        alert("로그인이 필요합니다.");
+        navigate("/login");
+        return;
+      }
+
+      // 백엔드에 업데이트
+      const updateData = {
+        nickname: editData.name,
+      };
+
+      const response = await updateProfile(updateData, token);
+      
+      if (response.user) {
+        setUserData({ ...editData });
+        setIsEditing(false);
+        alert("프로필이 수정되었습니다.");
+      }
+    } catch (error) {
+      console.error("프로필 수정 실패:", error);
+      alert(`프로필 수정에 실패했습니다: ${error.message || "알 수 없는 오류"}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white py-8 px-4">
@@ -186,15 +324,20 @@ export default function MyPage() {
             <div className="h-32 bg-gradient-to-r from-teal-400 to-emerald-400" />
             <CardContent className="relative pt-0 pb-8 px-8">
               <div className="flex flex-col md:flex-row items-start md:items-end gap-6 -mt-16">
-                <AvatarCircle text={userData.name} />
+                <AvatarCircle text={userData.name || "?"} />
 
                 <div className="flex-1 bg-white rounded-2xl p-6 shadow-md">
-                  {!isEditing ? (
+                  {profileLoading ? (
+                    <div className="text-center py-8">
+                      <div className="text-2xl mb-2">⏳</div>
+                      <p className="text-gray-500">프로필을 불러오는 중...</p>
+                    </div>
+                  ) : !isEditing ? (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h2 className="text-2xl text-gray-800">{userData.name}</h2>
-                          <p className="text-sm text-gray-500 mt-1">가입일: {userData.joinDate}</p>
+                          <h2 className="text-2xl text-gray-800">{userData.name || "사용자"}</h2>
+                          <p className="text-sm text-gray-500 mt-1">가입일: {userData.joinDate || "정보 없음"}</p>
                         </div>
                         <Button
                           onClick={() => setIsEditing(true)}
@@ -379,11 +522,11 @@ export default function MyPage() {
           {/* 통계 카드 */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
             {[
-              { label: "총 챌린지 일수", value: stats.totalDays, icon: Calendar, color: "from-blue-400 to-cyan-400" },
-              { label: "연속 인증일", value: stats.consecutiveDays, icon: Target, color: "from-purple-400 to-pink-400" },
+              { label: "총 챌린지 일수", value: statsLoading ? "..." : stats.totalDays, icon: Calendar, color: "from-blue-400 to-cyan-400" },
+              { label: "연속 인증일", value: statsLoading ? "..." : stats.consecutiveDays, icon: Target, color: "from-purple-400 to-pink-400" },
               { label: "CO2 절감 (kg)", value: stats.carbonSaved, icon: Leaf, color: "from-green-400 to-emerald-400" },
-              { label: "식단 인증", value: stats.postsCount, icon: CheckCircle2, color: "from-teal-400 to-cyan-400" },
-              { label: "완료한 챌린지", value: stats.challengesCompleted, icon: Trophy, color: "from-yellow-400 to-orange-400" },
+              { label: "식단 인증", value: postsLoading ? "..." : stats.postsCount, icon: CheckCircle2, color: "from-teal-400 to-cyan-400" },
+              { label: "완료한 챌린지", value: statsLoading ? "..." : stats.challengesCompleted, icon: Trophy, color: "from-yellow-400 to-orange-400" },
             ].map((stat, idx) => (
               <motion.div
                 key={stat.label}
@@ -529,8 +672,19 @@ export default function MyPage() {
                   <CardDescription>나의 비건 식단 기록</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {recentPosts.map((post, idx) => (
+                  {postsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="text-2xl mb-2">⏳</div>
+                      <p className="text-gray-500">게시글을 불러오는 중...</p>
+                    </div>
+                  ) : recentPosts.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="text-4xl mb-2">📝</div>
+                      <p className="text-gray-500">아직 작성한 게시글이 없습니다.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {recentPosts.map((post, idx) => (
                       <motion.div
                         key={idx}
                         initial={{ opacity: 0, y: 10 }}
@@ -549,8 +703,9 @@ export default function MyPage() {
                           </div>
                         </div>
                       </motion.div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
