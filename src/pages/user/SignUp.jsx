@@ -19,6 +19,7 @@ import {
 // lucide-react 아이콘 불러오기
 import { Leaf, Mail, Lock, Eye, EyeOff, User, CheckCircle2, MapPin } from "lucide-react";
 import { signup, saveToken, saveUser } from "../../api/backend";
+import { setAuth } from "../../hooks/auth";
 
 export default function SignUp() {
   // 폼 상태 관리 (입력값 저장)
@@ -90,6 +91,13 @@ export default function SignUp() {
           email: response.user.email, 
           name: response.user.nickname || response.user.name 
         }));
+        
+        // AuthContext를 위한 인증 정보 저장 (ProtectedRoute에서 사용)
+        setAuth({
+          email: response.user.email,
+          name: response.user.nickname || response.user.name,
+          id: response.user.id,
+        });
       }
 
       alert("회원가입이 완료되었습니다! 자동으로 로그인되었습니다.");

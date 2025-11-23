@@ -18,6 +18,7 @@ import {
 
 import { Leaf, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { login, saveToken, saveUser } from "../../api/backend";
+import { setAuth } from "../../hooks/auth";
 
 function Login({ onSignupClick, onLoginSuccess }) {
     const navigate = useNavigate();
@@ -55,6 +56,13 @@ function Login({ onSignupClick, onLoginSuccess }) {
                     email: response.user.email, 
                     name: response.user.nickname || response.user.name 
                 }));
+                
+                // AuthContext를 위한 인증 정보 저장 (ProtectedRoute에서 사용)
+                setAuth({
+                    email: response.user.email,
+                    name: response.user.nickname || response.user.name,
+                    id: response.user.id,
+                });
             }
 
             // 필요 시 상위 콜백 호출

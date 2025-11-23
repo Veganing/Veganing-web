@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentChallenge, getMyProfile, getChallengeStats, getToken } from "../../api/backend";
+import { getCurrentChallenge, getMyProfile, getChallengeStats, getToken, getPosts } from "../../api/backend";
 import { Card, CardContent } from "./components/ui/Card";
 import {
     Tabs,
@@ -12,6 +12,26 @@ import RankingTab from "./RankingTab";
 import FeedTab from "./FeedTab";
 import ChallengeTab from "./ChallengeTab";
 
+// 시간 변환 헬퍼 함수
+const formatTimeAgo = (dateString) => {
+    if (!dateString) return "방금 전";
+
+    const now = new Date();
+    const postDate = new Date(dateString);
+    const diffMs = now - postDate;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "방금 전";
+    if (diffMins < 60) return `${diffMins}분 전`;
+    if (diffHours < 24) return `${diffHours}시간 전`;
+    if (diffDays < 7) return `${diffDays}일 전`;
+    return postDate.toLocaleDateString("ko-KR");
+};
+
+// 더 이상 사용되지 않는 하드코딩된 데이터 (주석 처리)
+/*
 const feedPosts = [
     {
         username: "비건러버",
@@ -50,6 +70,7 @@ const feedPosts = [
         buttonIcon: "https://c.animaapp.com/mh1f3wszSXzzY1/img/button-2.svg",
     },
 ];
+*/
 
 const popularHashtags = [
     "#비건",
@@ -145,6 +166,8 @@ const Community = () => {
     const [userProfile, setUserProfile] = useState(null);
     const [userStats, setUserStats] = useState(null);
     const [profileLoading, setProfileLoading] = useState(true);
+    const [feedPosts, setFeedPosts] = useState([]);
+    const [feedLoading, setFeedLoading] = useState(true);
 
     useEffect(() => {
         const fetchCurrentChallenge = async () => {
@@ -229,12 +252,73 @@ const Community = () => {
         fetchUserData();
     }, []);
 
+    // 게시글 목록 가져오기
+    useEffect(() => {
+        const fetchPosts = async () => {
+            try {
+                setFeedLoading(true);
+                const response = await getPosts({ limit: 50 });
+
+                if (response.posts) {
+                    // 백엔드 데이터를 프론트엔드 형식으로 변환
+                    const formattedPosts = response.posts.map((post) => ({
+                        id: post.id,
+                        username: post.author?.nickname || "익명",
+                        level: `Lv.${post.author?.level || 1}`,
+                        location: "서울 강남구", // 백엔드에 위치 정보가 없으면 기본값
+                        time: formatTimeAgo(post.createdAt),
+                        content: post.content,
+                        hashtags: post.content?.match(/#[\w가-힣]+/g) || [],
+                        likes: post.likes || 0,
+                        comments: post.commentCount || 0,
+                        avatar: post.author?.profileImage || null,
+                        imageUrl: post.imageUrl,
+                        category: post.category,
+                        buttonIcon: "https://c.animaapp.com/mh1f3wszSXzzY1/img/button.svg",
+                    }));
+                    setFeedPosts(formattedPosts);
+                }
+            } catch (error) {
+                console.error("게시글 목록 조회 실패:", error);
+                // 에러 발생 시 빈 배열 유지 또는 기본 데이터 사용 가능
+            } finally {
+                setFeedLoading(false);
+            }
+        };
+
+        fetchPosts();
+
+        // 페이지가 다시 보일 때마다 데이터 새로고침
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                fetchPosts();
+            }
+        };
+
+        window.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, []);
+
     const goToChallenge = () => {
         navigate("/challenge");
     };
 
     const goToCreatePost = () => {
         navigate("/community/create");
+    };
+
+    // 게시글 업데이트 핸들러 (좋아요 등)
+    const handlePostUpdate = (postId, updates) => {
+        setFeedPosts(prevPosts => 
+            prevPosts.map(post => 
+                post.id === postId 
+                    ? { ...post, ...updates }
+                    : post
+            )
+        );
     };
 
     return (
@@ -308,12 +392,14 @@ const Community = () => {
                             <TabsContent value="feed">
                                 <FeedTab
                                     feedPosts={feedPosts}
+                                    feedLoading={feedLoading}
                                     challengeLoading={challengeLoading}
                                     isLoggedIn={isLoggedIn}
                                     currentChallenge={currentChallenge}
                                     goToChallenge={goToChallenge}
                                     popularHashtags={popularHashtags}
                                     onCreatePost={goToCreatePost}
+                                    onPostUpdate={handlePostUpdate}
                                 />
                             </TabsContent>
 
