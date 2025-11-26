@@ -34,10 +34,7 @@ import {
   Star,
   Medal,
   Target,
-  ShoppingCart,
 } from "lucide-react";
-
-import CartSection from "./CartSection";
 
 // ─────────────────────────────────────────────
 // 로컬 공통 컴포넌트
@@ -553,7 +550,6 @@ export default function MyPage() {
               { value: "badges", label: "획득 뱃지", icon: Trophy },
               { value: "ranking", label: "커뮤니티 순위", icon: TrendingUp },
               { value: "posts", label: "최근 활동", icon: Leaf },
-              { value: "cart", label: "장바구니", icon: ShoppingCart },
             ]}
             active={activeTab}
             onChange={setActiveTab}
@@ -710,8 +706,6 @@ export default function MyPage() {
               </Card>
             )}
 
-            {/* 4) 장바구니 */}
-            {activeTab === "cart" && <CartSection navigate={navigate} />}
           </div>
         </motion.div>
       </div>

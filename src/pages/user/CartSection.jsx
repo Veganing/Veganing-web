@@ -69,6 +69,30 @@ export default function CartSection({ navigate }) {
     cartItems.map((item) => item.id)
   );
 
+    const handleOrder = () => {
+    // 선택된 상품이 없거나, navigate가 없으면 아무 것도 안 함
+    if (!navigate || selectedItems.length === 0) return;
+
+    // 선택된 상품들만 골라내기
+    const selectedCartItems = cartItems.filter((item) =>
+      selectedItems.includes(item.id)
+    );
+
+    const totalPrice = getTotalPrice();
+    const shippingFee = totalPrice >= 30000 ? 0 : 3000;
+    const finalAmount = totalPrice + shippingFee;
+
+    // /order 페이지로 상태(state) 넘기면서 이동
+    navigate("/order", {
+      state: {
+        items: selectedCartItems,
+        totalPrice,
+        shippingFee,
+        finalAmount,
+      },
+    });
+  };
+
   const updateQuantity = (id, delta) => {
     setCartItems((items) =>
       items.map((item) =>
@@ -278,6 +302,7 @@ export default function CartSection({ navigate }) {
 
               <Button
                 disabled={selectedItems.length === 0}
+                onClick={handleOrder}
                 className="w-full h-14 rounded-2xl bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-500 hover:to-emerald-500 text-white shadow-lg hover:shadow-xl transition-all"
               >
                 {selectedItems.length === 0
