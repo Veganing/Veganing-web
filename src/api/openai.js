@@ -66,6 +66,192 @@ export function fileToDataUrl(file) {
     });
 }
 
+// 식단 추천 함수 (3개의 레시피 추천)
+export async function recommendMealRecipe(analysisResult) {
+    const systemPrompt = `
+당신은 비건 식단 전문 영양사입니다. 
+분석된 식단을 기반으로 더 건강하고 비건 친화적인 식단을 3개 추천해주세요.
+
+**추천 원칙:**
+1. 현재 식단의 영양 성분을 고려하여 부족한 영양소를 보완할 수 있는 식단 추천
+2. 비건 친화적인 재료 사용
+3. 간단하고 실용적인 레시피
+4. 탄소발자국이 낮은 식재료 선호
+5. 3개의 레시피는 서로 다른 특징을 가져야 함 (예: 다른 주재료, 다른 조리법 등)
+
+**응답 형식 (각 레시피마다 반복):**
+---레시피 1---
+🍽️ **추천 식단명**
+[식단 이름]
+
+📋 **필요한 식재료**
+- [재료1] [양]
+- [재료2] [양]
+- [재료3] [양]
+
+👨‍🍳 **간단한 조리법**
+1. [첫 번째 단계]
+2. [두 번째 단계]
+3. [세 번째 단계]
+
+💡 **추천 이유**
+[왜 이 식단을 추천하는지 설명]
+
+---레시피 2---
+[동일한 형식]
+
+---레시피 3---
+[동일한 형식]
+`.trim();
+
+    const userPrompt = `
+다음은 현재 분석된 식단입니다:
+
+${analysisResult}
+
+이 식단을 기반으로 건강하고 비건 친화적인 대체 식단을 3개 추천해주세요.
+각 레시피는 서로 다른 특징을 가져야 합니다.
+위 형식에 맞춰 3개의 레시피를 모두 응답해주세요.
+`.trim();
+
+    try {
+        const result = await analyzeMealWithLLM({
+            prompt: userPrompt,
+            systemPrompt,
+            imageDataUrl: null
+        });
+        return result;
+    } catch (e) {
+        console.error('식단 추천 실패:', e);
+        return null;
+    }
+}
+
+// 식재료 추출 함수
+export async function extractIngredients(recommendedRecipe) {
+    const systemPrompt = `
+당신은 식재료 추출 전문가입니다.
+추천된 레시피에서 사용된 식재료와 그 양을 정확하게 추출해주세요.
+
+JSON 형식으로 응답:
+{
+    "ingredients": [
+        {"name": "재료명", "amount": "양", "unit": "단위"},
+        ...
+    ]
+}
+`.trim();
+
+    const userPrompt = `
+다음 레시피에서 사용된 식재료를 모두 추출해주세요:
+
+${recommendedRecipe}
+
+JSON 형식으로 응답해주세요.
+`.trim();
+
+    try {
+        const result = await analyzeMealWithLLM({
+            prompt: userPrompt,
+            systemPrompt,
+            imageDataUrl: null
+        });
+
+        let jsonStr = result.trim();
+        if (jsonStr.includes('```json')) {
+            jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
+        } else if (jsonStr.includes('```')) {
+            jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
+        }
+
+        const parsed = JSON.parse(jsonStr);
+        return parsed.ingredients || [];
+    } catch (e) {
+        console.error('식재료 추출 실패:', e);
+        return [];
+    }
+}
+
+// 개별 식단의 탄소발자국 계산 함수
+export async function calculateSingleMealCarbonFootprint(analysisResult, ingredients = null) {
+    const systemPrompt = `
+당신은 환경 영향 분석 전문가입니다.
+
+**식재료별 CO2 배출량 (1kg 기준):**
+- 쇠고기: 27kg CO2
+- 돼지고기: 12.1kg CO2
+- 닭고기: 6.9kg CO2
+- 생선: 6.1kg CO2
+- 달걀: 4.2kg CO2
+- 치즈: 13.5kg CO2
+- 우유: 3.2kg CO2
+- 쌀: 2.7kg CO2
+- 밀: 1.4kg CO2
+- 채소류 (토마토, 오이, 상추 등): 0.4kg CO2
+- 과일류 (사과, 바나나 등): 0.4kg CO2
+- 콩류 (두부, 콩 등): 1.0kg CO2
+- 견과류: 2.3kg CO2
+
+**계산 방법:**
+1. 각 식재료의 양을 파악 (g 단위로 환산)
+2. 식재료별 CO2 배출량 × 양(kg) = 총 CO2 배출량
+3. 일반 육류 식사(7.2kg CO2) 대비 절약량 계산
+
+JSON 형식으로 응답:
+{
+    "totalCO2Emission": 숫자,
+    "co2Saved": 숫자,
+    "ingredientBreakdown": [
+        {"name": "재료명", "amount": "양", "co2Emission": 숫자}
+    ]
+}
+`.trim();
+
+    const userPrompt = `
+다음은 분석된 식단입니다:
+
+${analysisResult}
+
+${ingredients ? `
+다음은 추천된 식단의 식재료 목록입니다:
+
+${JSON.stringify(ingredients, null, 2)}
+` : ''}
+
+이 식단의 탄소발자국을 계산해주세요.
+위 형식의 JSON으로 응답해주세요.
+`.trim();
+
+    try {
+        const result = await analyzeMealWithLLM({
+            prompt: userPrompt,
+            systemPrompt,
+            imageDataUrl: null
+        });
+
+        let jsonStr = result.trim();
+        if (jsonStr.includes('```json')) {
+            jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
+        } else if (jsonStr.includes('```')) {
+            jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
+        }
+
+        const parsed = JSON.parse(jsonStr);
+        return {
+            totalCO2Emission: parseFloat(parsed.totalCO2Emission || 0).toFixed(2),
+            co2Saved: parseFloat(parsed.co2Saved || 0).toFixed(2),
+            ingredientBreakdown: parsed.ingredientBreakdown || []
+        };
+    } catch (e) {
+        console.error('개별 식단 탄소발자국 계산 실패:', e);
+        return {
+            totalCO2Emission: '0.00',
+            co2Saved: '0.00',
+            ingredientBreakdown: []
+        };
+    }
+}
+
 // 탄소발자국 계산 프롬프팅
 export async function calculateCarbonFootprint(mealsData) {
     const systemPrompt = `

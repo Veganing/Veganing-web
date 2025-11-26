@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import EnvImpactPopup from './EnvimpactPopup';
 import { calculateCarbonFootprint } from '../../../../api/openai';
+import { addPoints, getToken } from '../../../../api/backend';
 
 function UploadButton({ mealsCount, onSaveComplete }) {
     const [showPopup, setShowPopup] = useState(false);
@@ -26,6 +27,36 @@ function UploadButton({ mealsCount, onSaveComplete }) {
             try {
                 // LLM으로 탄소발자국 계산
                 const calculatedData = await calculateCarbonFootprint(meals);
+                
+                // 포인트 추가 및 레벨업 (200포인트)
+                try {
+                    const token = getToken();
+                    if (token) {
+                        const pointsResult = await addPoints(200, token);
+                        console.log('✅ 포인트 추가 완료:', pointsResult);
+                        
+                        // 레벨업 알림
+                        if (pointsResult.user.leveledUp && pointsResult.user.levelUps > 0) {
+                            const levelUpMessage = pointsResult.user.levelUps > 1 
+                                ? `🎉 레벨업 ${pointsResult.user.levelUps}회!\n\nLevel ${pointsResult.user.level - pointsResult.user.levelUps} → Level ${pointsResult.user.level} 달성!`
+                                : `🎉 레벨업! Level ${pointsResult.user.level} 달성!`;
+                            alert(`${levelUpMessage}\n\n+200 포인트 추가!\n현재 포인트: ${pointsResult.user.points} / 600`);
+                            
+                            // 레벨업 시 페이지 새로고침하여 상단 카드 업데이트
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            alert(`+200 포인트 추가!\n\n현재 포인트: ${pointsResult.user.points} / 600\n레벨: ${pointsResult.user.level}`);
+                            
+                            // 포인트 업데이트 반영을 위해 상단 데이터 새로고침 (페이지 리로드 없이)
+                            window.dispatchEvent(new CustomEvent('pointsUpdated'));
+                        }
+                    }
+                } catch (pointsError) {
+                    console.error('포인트 추가 실패:', pointsError);
+                    // 포인트 추가 실패해도 탄소발자국 계산은 계속 진행
+                }
                 
                 setImpactData(calculatedData);
                 setShowPopup(true);
