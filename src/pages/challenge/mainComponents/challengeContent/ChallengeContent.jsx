@@ -16,7 +16,7 @@ function ChallengeContent() {
             case '진행 현황':
                 return <ProgressContainer />;
             case '레시피':
-                return <RecipeTab />;
+                return <RecipeTab key={activeTab} />; // key를 추가하여 탭 전환 시 재마운트
             case '쇼핑':
                 return <ShoppingTab />;
             default:

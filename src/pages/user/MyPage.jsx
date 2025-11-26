@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import { getMyProfile, getChallengeStats, getPosts, updateProfile, getToken } from "../../api/backend";
+import { getMyProfile, getChallengeStats, getPosts, updateProfile, getToken, removeToken, logout } from "../../api/backend";
+import { clearAuth } from "../../hooks/auth";
+import useCarbonHistory from "../../hooks/useCarbonHistory";
 
 import {
   Card,
@@ -115,10 +117,13 @@ export default function MyPage() {
     confirm: false,
   });
 
+  // CO2 절감량은 useCarbonHistory 훅에서 동적으로 가져옴
+  const { totalCO2 } = useCarbonHistory();
+
   const [stats, setStats] = useState({
     totalDays: 0,
     consecutiveDays: 0,
-    carbonSaved: 234.5, // CO2 절감은 백엔드에 없으므로 기본값 유지
+    carbonSaved: 0, // useCarbonHistory에서 동적으로 가져옴
     postsCount: 0,
     challengesCompleted: 0,
   });
@@ -134,13 +139,8 @@ export default function MyPage() {
     { id: 6, name: "완벽주의자", icon: Target, color: "text-indigo-600", bgColor: "bg-indigo-100", earned: false, description: "100일 연속 인증" },
   ];
 
-  const rankings = [
-    { rank: 1, name: "박지연", region: "강남구", score: 1250, avatar: "PJ" },
-    { rank: 2, name: "이민수", region: "강남구", score: 1180, avatar: "LM" },
-    { rank: 3, name: "김비건", region: "강남구", score: 890, avatar: "KB", isMe: true },
-    { rank: 4, name: "최서현", region: "강남구", score: 820, avatar: "CS" },
-    { rank: 5, name: "정우진", region: "강남구", score: 765, avatar: "JW" },
-  ];
+  const [rankings, setRankings] = useState([]);
+  const [rankingsLoading, setRankingsLoading] = useState(true);
 
   const handleCancelEdit = () => {
     setEditData({ ...userData });
@@ -192,6 +192,20 @@ export default function MyPage() {
         }
       } catch (error) {
         console.error("프로필 조회 실패:", error);
+        
+        // 토큰 만료 체크
+        if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
+          console.warn("⚠️ 토큰이 만료되었습니다. 자동 로그아웃합니다.");
+          // 토큰 제거 및 로그아웃
+          removeToken();
+          clearAuth();
+          logout();
+          // 로그인 페이지로 리다이렉트
+          alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+          navigate("/login");
+          return;
+        }
+        
         alert("프로필을 불러오는데 실패했습니다.");
       } finally {
         setProfileLoading(false);
@@ -221,6 +235,16 @@ export default function MyPage() {
         }
       } catch (error) {
         console.error("통계 조회 실패:", error);
+        // 토큰 만료 체크
+        if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
+          console.warn("⚠️ 통계 조회 중 토큰 만료 감지");
+          removeToken();
+          clearAuth();
+          logout();
+          alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+          navigate("/login");
+          return;
+        }
       } finally {
         setStatsLoading(false);
       }
@@ -229,20 +253,44 @@ export default function MyPage() {
     fetchStats();
   }, []);
 
-  // 최근 게시글 로드
+  // CO2 절감량이 변경될 때마다 stats 업데이트
   useEffect(() => {
-    const fetchMyPosts = async () => {
+    setStats(prev => ({
+      ...prev,
+      carbonSaved: totalCO2,
+    }));
+  }, [totalCO2]);
+
+  // 최근 게시글 및 커뮤니티 순위 로드
+  useEffect(() => {
+    const fetchMyPostsAndRankings = async () => {
       try {
         setPostsLoading(true);
+        setRankingsLoading(true);
         const token = getToken();
         if (!token) return;
 
-        // 모든 게시글을 가져온 후 프론트엔드에서 필터링
+        // 모든 게시글을 가져온 후 프론트엔드에서 처리
         const response = await getPosts({ limit: 100 });
         if (response.posts) {
           // 현재 사용자 ID 가져오기
-          const userResponse = await getMyProfile(token);
-          const currentUserId = userResponse.user?.id;
+          let userResponse;
+          try {
+            userResponse = await getMyProfile(token);
+          } catch (error) {
+            // 토큰 만료 체크
+            if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
+              console.warn("⚠️ 게시글 조회 중 토큰 만료 감지");
+              removeToken();
+              clearAuth();
+              logout();
+              alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+              navigate("/login");
+              return;
+            }
+            throw error;
+          }
+          const currentUserId = userResponse?.user?.id;
 
           if (currentUserId) {
             // 본인 게시글만 필터링하고 최신순으로 정렬
@@ -262,16 +310,65 @@ export default function MyPage() {
               ...prev,
               postsCount: response.posts.filter(post => post.author?.id === currentUserId).length,
             }));
+
+            // 커뮤니티 순위 계산 (좋아요 순)
+            // 작성자별로 그룹화하고 총 좋아요 수 계산
+            const userLikesMap = new Map();
+            
+            response.posts.forEach(post => {
+              if (post.author?.id && post.author?.nickname) {
+                const userId = post.author.id;
+                const currentLikes = userLikesMap.get(userId) || 0;
+                userLikesMap.set(userId, currentLikes + (post.likes || 0));
+              }
+            });
+
+            // Map을 배열로 변환하고 좋아요 수로 정렬
+            const rankingsData = Array.from(userLikesMap.entries())
+              .map(([userId, totalLikes]) => {
+                // 해당 사용자의 첫 번째 게시글을 찾아서 사용자 정보 가져오기
+                const userPost = response.posts.find(post => post.author?.id === userId);
+                if (!userPost || !userPost.author) return null;
+
+                return {
+                  userId: userId,
+                  name: userPost.author.nickname || "익명",
+                  region: "강남구", // 기본값 (백엔드에 지역 정보가 없음)
+                  score: totalLikes,
+                  avatar: userPost.author.profileImage || userPost.author.nickname?.charAt(0) || "?",
+                  isMe: userId === currentUserId,
+                };
+              })
+              .filter(item => item !== null)
+              .sort((a, b) => b.score - a.score) // 좋아요 수 내림차순 정렬
+              .slice(0, 5) // 상위 5명만
+              .map((item, index) => ({
+                ...item,
+                rank: index + 1,
+              }));
+
+            setRankings(rankingsData);
           }
         }
       } catch (error) {
         console.error("게시글 조회 실패:", error);
+        // 토큰 만료 체크
+        if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
+          console.warn("⚠️ 게시글 조회 중 토큰 만료 감지");
+          removeToken();
+          clearAuth();
+          logout();
+          alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+          navigate("/login");
+          return;
+        }
       } finally {
         setPostsLoading(false);
+        setRankingsLoading(false);
       }
     };
 
-    fetchMyPosts();
+    fetchMyPostsAndRankings();
   }, []);
 
   const handleSaveProfile = async () => {
@@ -609,57 +706,69 @@ export default function MyPage() {
             {activeTab === "ranking" && (
               <Card className="border-0 shadow-lg shadow-teal-100/50 rounded-3xl">
                 <CardHeader>
-                  <CardTitle className="text-gray-800">강남구 지역 순위</CardTitle>
-                  <CardDescription>이번 달 나의 순위를 확인하세요</CardDescription>
+                  <CardTitle className="text-gray-800">커뮤니티 순위</CardTitle>
+                  <CardDescription>좋아요 순으로 정렬된 커뮤니티 순위를 확인하세요</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {rankings.map((user, idx) => (
-                      <motion.div
-                        key={user.rank}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className={`p-4 rounded-2xl flex items-center gap-4 ${
-                          user.isMe
-                            ? "bg-gradient-to-r from-teal-50 to-emerald-50 border-2 border-teal-200"
-                            : "bg-gray-50"
-                        }`}
-                      >
-                        <div
-                          className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white ${
-                            user.rank === 1
-                              ? "bg-gradient-to-br from-yellow-400 to-orange-400"
-                              : user.rank === 2
-                              ? "bg-gradient-to-br from-gray-300 to-gray-400"
-                              : user.rank === 3
-                              ? "bg-gradient-to-br from-amber-600 to-amber-700"
-                              : "bg-gradient-to-br from-teal-400 to-emerald-400"
+                  {rankingsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="text-2xl mb-2">⏳</div>
+                      <p className="text-gray-500">순위를 불러오는 중...</p>
+                    </div>
+                  ) : rankings.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="text-4xl mb-2">📊</div>
+                      <p className="text-gray-500">아직 순위 데이터가 없습니다.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {rankings.map((user, idx) => (
+                        <motion.div
+                          key={user.userId || user.rank}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.1 }}
+                          className={`p-4 rounded-2xl flex items-center gap-4 ${
+                            user.isMe
+                              ? "bg-gradient-to-r from-teal-50 to-emerald-50 border-2 border-teal-200"
+                              : "bg-gray-50"
                           }`}
                         >
-                          {user.rank}
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-400 text-white flex items-center justify-center">
-                          {user.avatar}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-800">{user.name}</span>
-                            {user.isMe && (
-                              <PillBadge className="bg-gradient-to-r from-teal-400 to-emerald-400">
-                                나
-                              </PillBadge>
-                            )}
+                          <div
+                            className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white ${
+                              user.rank === 1
+                                ? "bg-gradient-to-br from-yellow-400 to-orange-400"
+                                : user.rank === 2
+                                ? "bg-gradient-to-br from-gray-300 to-gray-400"
+                                : user.rank === 3
+                                ? "bg-gradient-to-br from-amber-600 to-amber-700"
+                                : "bg-gradient-to-br from-teal-400 to-emerald-400"
+                            }`}
+                          >
+                            {user.rank}
                           </div>
-                          <p className="text-sm text-gray-500">{user.region}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg text-gray-800">{user.score}</div>
-                          <p className="text-sm text-gray-500">점</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-400 text-white flex items-center justify-center">
+                            {user.avatar}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-800">{user.name}</span>
+                              {user.isMe && (
+                                <PillBadge className="bg-gradient-to-r from-teal-400 to-emerald-400">
+                                  나
+                                </PillBadge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">{user.region}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg text-gray-800">{user.score}</div>
+                            <p className="text-sm text-gray-500">좋아요</p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

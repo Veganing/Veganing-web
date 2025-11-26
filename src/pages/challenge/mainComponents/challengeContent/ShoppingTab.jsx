@@ -1,51 +1,133 @@
-import React, { useState } from 'react';
-import { searchNaverShopping } from '../../../../api/naver';
+import React, { useState, useEffect } from 'react';
+
+const STORAGE_KEY = 'challenge_meal_index_state';
 
 const ShoppingTab = () => {
-    // LLM 추천 식단 기반 필요 식재료 목록
-    const [requiredIngredients] = useState([
-        { id: 1, name: "닭가슴살", amount: "300g", reason: "단백질 보충", priority: "높음" },
-        { id: 2, name: "시금치", amount: "200g", reason: "철분 보충", priority: "높음" },
-        { id: 3, name: "연어", amount: "150g", reason: "오메가3 보충", priority: "높음" },
-        { id: 4, name: "로메인상추", amount: "1포기", reason: "비타민 보충", priority: "보통" },
-        { id: 5, name: "방울토마토", amount: "100g", reason: "비타민C 보충", priority: "보통" },
-        { id: 6, name: "현미", amount: "1kg", reason: "식이섬유 보충", priority: "보통" },
-        { id: 7, name: "두부", amount: "1모", reason: "칼슘 보충", priority: "높음" },
-        { id: 8, name: "아보카도", amount: "2개", reason: "건강한 지방", priority: "보통" }
-    ]);
+    const [requiredIngredients, setRequiredIngredients] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [selectedIngredient, setSelectedIngredient] = useState(null);
 
-    // 네이버 쇼핑 API 호출
-    const handleSearchNaverShopping = async (keyword) => {
-        setLoading(true);
+    // localStorage에서 식단 가져오기
+    const getMealsFromStorage = () => {
         try {
-            const data = await searchNaverShopping(keyword, 20);
-            setProducts(data.items || []);
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return parsed || [];
+            }
         } catch (error) {
-            console.error('네이버 쇼핑 API 호출 실패:', error);
-            setProducts([]);
+            console.error('localStorage에서 식단 가져오기 실패:', error);
+        }
+        return [];
+    };
+
+    // 저장된 식단에서 식재료 추출
+    useEffect(() => {
+        loadIngredients();
+        
+        // 탭이 보일 때마다 새로고침
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                loadIngredients();
+            }
+        };
+        
+        const handleFocus = () => {
+            loadIngredients();
+        };
+        
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    const loadIngredients = () => {
+        setIsLoading(true);
+        try {
+            // localStorage에서 식단 가져오기
+            const meals = getMealsFromStorage();
+            
+            // window.getAllMeals도 시도 (fallback)
+            let allMeals = meals;
+            if (meals.length === 0) {
+                allMeals = window.getAllMeals?.() || [];
+            }
+            
+            console.log('🔵 ShoppingTab - 가져온 식단 개수:', allMeals.length);
+            
+            // 모든 식단의 식재료 수집
+            const ingredientMap = new Map();
+            
+            for (const meal of allMeals) {
+                // ingredients 배열이 있으면 사용
+                if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+                    for (const ing of meal.ingredients) {
+                        const key = ing.name?.toLowerCase().trim() || ing.toLowerCase().trim();
+                        const existing = ingredientMap.get(key);
+                        
+                        if (existing) {
+                            // 이미 존재하면 양 합치기
+                            existing.amount = `${existing.amount} + ${ing.amount || ing}`;
+                        } else {
+                            ingredientMap.set(key, {
+                                id: ingredientMap.size + 1,
+                                name: ing.name || ing,
+                                amount: ing.amount || (typeof ing === 'string' ? ing : '필요량 확인'),
+                                reason: meal.recommendReason || '추천 식단',
+                                priority: '보통'
+                            });
+                        }
+                    }
+                } else if (meal.recommendedRecipe) {
+                    // recommendedRecipe에서 식재료 추출 시도
+                    const ingredientsMatch = meal.recommendedRecipe.match(/📋\s*\*\*필요한 식재료\*\*\s*\n([\s\S]*?)(?=👨‍🍳|💡|---|$)/);
+                    if (ingredientsMatch) {
+                        const ingredientsText = ingredientsMatch[1].trim();
+                        const ingredientLines = ingredientsText.split('\n').filter(line => line.trim());
+                        
+                        for (const line of ingredientLines) {
+                            const cleaned = line.replace(/^[-•\s*]/, '').trim();
+                            if (cleaned) {
+                                const key = cleaned.toLowerCase();
+                                if (!ingredientMap.has(key)) {
+                                    ingredientMap.set(key, {
+                                        id: ingredientMap.size + 1,
+                                        name: cleaned.split(/\s+/)[0] || cleaned,
+                                        amount: cleaned.replace(/^\S+\s*/, '').trim() || '필요량 확인',
+                                        reason: meal.recommendReason || '추천 식단',
+                                        priority: '보통'
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            const ingredients = Array.from(ingredientMap.values());
+            console.log('🔵 ShoppingTab - 추출된 식재료 개수:', ingredients.length);
+            setRequiredIngredients(ingredients);
+        } catch (error) {
+            console.error('식재료 로드 실패:', error);
+            setRequiredIngredients([]);
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
-    // 식재료 선택 시 상품 검색
+    // 식재료 선택 시 상세 정보 표시
     const handleIngredientClick = (ingredient) => {
         setSelectedIngredient(ingredient);
-        handleSearchNaverShopping(ingredient.name);
     };
 
-    // HTML 태그 제거 함수
-    const removeHtmlTags = (text) => {
-        return text.replace(/<[^>]*>/g, '');
-    };
-
-    // 가격 포맷팅
-    const formatPrice = (price) => {
-        return new Intl.NumberFormat('ko-KR').format(price);
+    // 네이버 쇼핑 직접 링크 생성
+    const getNaverShoppingLink = (ingredientName) => {
+        return `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(ingredientName)}`;
     };
 
     return (
@@ -54,6 +136,13 @@ const ShoppingTab = () => {
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">추천 식단 쇼핑 목록</h1>
                     <p className="text-gray-600">식단 분석 결과를 바탕으로 필요한 식재료를 검색해보세요</p>
+                    <button
+                        onClick={loadIngredients}
+                        disabled={isLoading}
+                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:bg-gray-400"
+                    >
+                        {isLoading ? '로딩 중...' : '식재료 목록 새로고침'}
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -61,6 +150,17 @@ const ShoppingTab = () => {
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-lg shadow p-4">
                             <h2 className="text-lg font-semibold text-gray-800 mb-4">필요한 식재료</h2>
+                            {isLoading ? (
+                                <div className="text-center py-8">
+                                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+                                    <p className="mt-4 text-sm text-gray-600">식재료를 불러오는 중...</p>
+                                </div>
+                            ) : requiredIngredients.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p className="text-sm mb-2">저장된 식단이 없습니다.</p>
+                                    <p className="text-xs">식단을 분석하고 저장하면 추천 식재료가 표시됩니다.</p>
+                                </div>
+                            ) : (
                             <div className="space-y-2 max-h-[600px] overflow-y-auto">
                                 {requiredIngredients.map((ingredient) => (
                                     <button
@@ -85,109 +185,102 @@ const ShoppingTab = () => {
                                     </button>
                                 ))}
                             </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* 오른쪽: 네이버 쇼핑 검색 결과 */}
+                    {/* 오른쪽: 식재료 상세 정보 */}
                     <div className="lg:col-span-2">
                         <div className="bg-white rounded-lg shadow">
                             {!selectedIngredient ? (
                                 <div className="p-12 text-center text-gray-500">
                                     <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                     </svg>
-                                    <p className="text-lg">왼쪽에서 식재료를 선택하면<br />쇼핑 상품을 검색해드립니다</p>
+                                    <p className="text-lg font-medium text-gray-700 mb-2">식재료를 선택해주세요</p>
+                                    <p className="text-sm text-gray-500">왼쪽에서 식재료를 선택하면<br />상세 정보와 구매 링크를 확인할 수 있습니다</p>
                                 </div>
                             ) : (
-                                <>
-                                    <div className="p-4 border-b">
-                                        <h2 className="text-xl font-semibold text-gray-800">
-                                            "{selectedIngredient.name}" 검색 결과
+                                <div className="p-6">
+                                    <div className="mb-6 pb-4 border-b">
+                                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                                            {selectedIngredient.name}
                                         </h2>
-                                        <p className="text-sm text-gray-600 mt-1">
-                                            필요량: {selectedIngredient.amount} · {selectedIngredient.reason}
-                                        </p>
+                                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                                            <span>필요량: <strong className="text-gray-800">{selectedIngredient.amount}</strong></span>
+                                            <span>·</span>
+                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                {selectedIngredient.reason}
+                                            </span>
+                                        </div>
                                     </div>
 
-                                    {loading ? (
-                                        <div className="p-12 text-center">
-                                            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-                                            <p className="mt-4 text-gray-600">상품을 검색하는 중...</p>
+                                    <div className="space-y-6">
+                                        {/* 구매 링크 */}
+                                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-4">구매하기</h3>
+                                            <p className="text-sm text-gray-600 mb-4">
+                                                {selectedIngredient.name}을(를) 네이버 쇼핑에서 검색해보세요.
+                                            </p>
+                                            <a
+                                                href={getNaverShoppingLink(selectedIngredient.name)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-md hover:shadow-lg"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                </svg>
+                                                네이버 쇼핑에서 검색하기
+                                            </a>
                                         </div>
-                                    ) : (
-                                        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                                            <table className="w-full">
-                                                <thead className="bg-gray-50 sticky top-0">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">상품명</th>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">최저가</th>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">브랜드</th>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">카테고리</th>
-                                                        <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">구매하기</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-200">
-                                                    {products.length === 0 ? (
-                                                        <tr>
-                                                            <td colSpan="5" className="px-4 py-8 text-center text-gray-500">
-                                                                검색 결과가 없습니다
-                                                            </td>
-                                                        </tr>
-                                                    ) : (
-                                                        products.map((product, index) => (
-                                                            <tr key={index} className="hover:bg-gray-50 transition">
-                                                                <td className="px-4 py-3">
-                                                                    <div className="flex items-center space-x-3">
-                                                                        <img
-                                                                            src={product.image}
-                                                                            alt={removeHtmlTags(product.title)}
-                                                                            className="w-12 h-12 object-cover rounded"
-                                                                            onError={(e) => {
-                                                                                e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48"%3E%3Crect fill="%23ddd" width="48" height="48"/%3E%3C/svg%3E';
-                                                                            }}
-                                                                        />
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <div
-                                                                                className="text-sm text-gray-800 line-clamp-2"
-                                                                                dangerouslySetInnerHTML={{ __html: product.title }}
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-4 py-3">
-                                                                    <div className="text-sm font-semibold text-gray-900">
-                                                                        {formatPrice(product.lprice)}원
-                                                                    </div>
-                                                                    {product.hprice && product.hprice !== product.lprice && (
-                                                                        <div className="text-xs text-gray-500 line-through">
-                                                                            {formatPrice(product.hprice)}원
-                                                                        </div>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-sm text-gray-700">
-                                                                    {product.brand || '-'}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-sm text-gray-600">
-                                                                    {product.category1 || '-'}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-center">
-                                                                    <a
-                                                                        href={product.link}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="inline-block px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
-                                                                    >
-                                                                        네이버쇼핑
-                                                                    </a>
-                                                                </td>
-                                                            </tr>
-                                                        ))
-                                                    )}
-                                                </tbody>
-                                            </table>
+
+                                        {/* 식재료 정보 */}
+                                        <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-4">식재료 정보</h3>
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm text-gray-600">식재료명</span>
+                                                    <span className="text-sm font-medium text-gray-800">{selectedIngredient.name}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm text-gray-600">필요량</span>
+                                                    <span className="text-sm font-medium text-gray-800">{selectedIngredient.amount}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm text-gray-600">추천 이유</span>
+                                                    <span className="text-sm font-medium text-gray-800">{selectedIngredient.reason}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
-                                </>
+
+                                        {/* 쇼핑 팁 */}
+                                        <div className="bg-yellow-50 rounded-xl p-6 border border-yellow-200">
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                                <span>💡</span>
+                                                쇼핑 팁
+                                            </h3>
+                                            <ul className="space-y-2 text-sm text-gray-700">
+                                                <li className="flex items-start gap-2">
+                                                    <span className="text-yellow-600 mt-1">•</span>
+                                                    <span>유기농이나 친환경 제품을 우선 선택하세요</span>
+                                                </li>
+                                                <li className="flex items-start gap-2">
+                                                    <span className="text-yellow-600 mt-1">•</span>
+                                                    <span>신선도와 유통기한을 꼭 확인하세요</span>
+                                                </li>
+                                                <li className="flex items-start gap-2">
+                                                    <span className="text-yellow-600 mt-1">•</span>
+                                                    <span>필요량에 맞는 적정 포장 크기를 선택하세요</span>
+                                                </li>
+                                                <li className="flex items-start gap-2">
+                                                    <span className="text-yellow-600 mt-1">•</span>
+                                                    <span>비건 인증이 있는 제품을 확인하세요</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>

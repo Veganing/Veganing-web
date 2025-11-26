@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentChallenge, getMyProfile, getChallengeStats, getToken, getPosts } from "../../api/backend";
+import { getCurrentChallenge, getMyProfile, getChallengeStats, getToken, getPosts, removeToken, logout } from "../../api/backend";
+import { clearAuth } from "../../hooks/auth";
 import { Card, CardContent } from "./components/ui/Card";
 import {
     Tabs,
@@ -220,30 +221,76 @@ const Community = () => {
                 const token = getToken();
 
                 if (!token) {
+                    setIsLoggedIn(false);
                     setProfileLoading(false);
                     return;
                 }
 
-                const [profileResponse, statsResponse] = await Promise.all([
-                    getMyProfile(token).catch(err => {
-                        console.error("프로필 조회 실패:", err);
-                        return null;
-                    }),
-                    getChallengeStats(token).catch(err => {
-                        console.error("통계 조회 실패:", err);
-                        return null;
-                    }),
-                ]);
+                setIsLoggedIn(true); // 토큰이 있으면 로그인 상태로 설정
 
-                if (profileResponse && profileResponse.user) {
-                    setUserProfile(profileResponse.user);
+                // MyPage.jsx와 동일한 방식으로 프로필 가져오기
+                try {
+                    console.log("🔵 프로필 API 호출 시작, 토큰:", token ? "존재" : "없음");
+                    const profileResponse = await getMyProfile(token);
+                    console.log("🔍 프로필 응답 전체:", JSON.stringify(profileResponse, null, 2));
+                    console.log("🔍 profileResponse.user:", profileResponse?.user);
+                    
+                    if (profileResponse && profileResponse.user) {
+                        const user = profileResponse.user;
+                        console.log("✅ 사용자 데이터:", user);
+                        setUserProfile(user);
+                        console.log("✅ 프로필 설정 완료!");
+                    } else {
+                        console.warn("⚠️ 프로필 응답 형식이 예상과 다릅니다.");
+                        console.warn("전체 응답:", profileResponse);
+                        // 응답이 있지만 user가 없는 경우, 응답 자체가 user일 수도 있음
+                        if (profileResponse && (profileResponse.id || profileResponse.email || profileResponse.nickname)) {
+                            console.log("응답 자체가 user 객체인 것으로 보입니다. 직접 설정합니다.");
+                            setUserProfile(profileResponse);
+                        }
+                    }
+                } catch (error) {
+                    console.error("❌ 프로필 조회 실패:");
+                    console.error("에러 메시지:", error.message);
+                    
+                    // 토큰 만료 체크
+                    if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
+                        console.warn("⚠️ 토큰이 만료되었습니다. 자동 로그아웃합니다.");
+                        // 토큰 제거 및 로그아웃
+                        removeToken();
+                        clearAuth();
+                        logout();
+                        // 로그인 페이지로 리다이렉트
+                        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+                        navigate("/login");
+                        return;
+                    }
+                    
+                    // 프로필 로딩 실패해도 로그인 상태는 유지 (토큰이 있으므로)
                 }
 
-                if (statsResponse && statsResponse.stats) {
-                    setUserStats(statsResponse.stats);
+                // 통계 데이터 가져오기
+                try {
+                    const statsResponse = await getChallengeStats(token);
+                    if (statsResponse && statsResponse.stats) {
+                        setUserStats(statsResponse.stats);
+                    }
+                } catch (error) {
+                    console.error("통계 조회 실패:", error);
+                    // 토큰 만료 체크
+                    if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
+                        console.warn("⚠️ 통계 조회 중 토큰 만료 감지");
+                        // 이미 위에서 처리했으므로 중복 처리 방지
+                    }
+                    // 통계 실패는 치명적이지 않음
                 }
             } catch (error) {
                 console.error("사용자 데이터 조회 실패:", error);
+                // 에러가 발생해도 토큰이 있으면 로그인 상태는 유지
+                const token = getToken();
+                if (token) {
+                    setIsLoggedIn(true);
+                }
             } finally {
                 setProfileLoading(false);
             }
