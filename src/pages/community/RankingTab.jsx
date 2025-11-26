@@ -96,10 +96,22 @@ const RankingTab = ({
                             <div className="text-2xl">⏳</div>
                             <p className="ml-2 text-gray-600">로딩 중...</p>
                         </div>
-                    ) : !isLoggedIn || !userProfile ? (
+                    ) : !isLoggedIn ? (
                         <div className="flex flex-col items-center gap-4 py-8">
                             <div className="text-4xl">🌱</div>
                             <p className="text-gray-600">로그인하고 프로필을 확인하세요!</p>
+                        </div>
+                    ) : !userProfile ? (
+                        <div className="flex flex-col items-center gap-4 py-8">
+                            <div className="text-4xl">🌱</div>
+                            <p className="text-gray-600">프로필을 불러올 수 없습니다.</p>
+                            <p className="text-sm text-gray-500">새로고침해주세요.</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="mt-2 px-4 py-2 bg-[#00a63e] text-white rounded-lg hover:bg-[#008235] transition-colors [font-family:'Nunito',Helvetica] font-medium text-sm"
+                            >
+                                새로고침
+                            </button>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-6">

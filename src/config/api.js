@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
     STATS: `${API_BASE_URL}/api/challenge/stats`,
     PROGRESS: (id) => `${API_BASE_URL}/api/challenge/${id}/progress`,
     QUIT: (id) => `${API_BASE_URL}/api/challenge/${id}/quit`,
+    ADD_POINTS: `${API_BASE_URL}/api/challenge/add-points`,
   },
 
   // 커뮤니티 관련
@@ -91,13 +92,29 @@ export const apiClient = {
 
       if (!response.ok) {
         let errorMessage = 'API 요청 실패';
+        let errorData = null;
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+          errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorData.details || `HTTP ${response.status}: ${response.statusText}`;
+          console.error('❌ API 에러 응답:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData: errorData
+          });
         } catch (e) {
+          const text = await response.text();
+          console.error('❌ API 에러 응답 (JSON 파싱 실패):', text);
           errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         }
-        throw new Error(errorMessage);
+        
+        // 에러 객체에 원본 데이터 포함
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.error = errorData?.error || errorMessage;
+        error.details = errorData?.details;
+        error.existingChallenge = errorData?.existingChallenge;
+        error.rawData = errorData;
+        throw error;
       }
 
       return response.json();

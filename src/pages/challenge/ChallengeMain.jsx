@@ -1,18 +1,44 @@
-import { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import ChallengeTabs from "./mainComponents/challengeContent/ChallengeTab";
-import { getCurrentChallenge, getChallengeStats, getToken } from '../../api/backend';
+import MealContainer from "./mainComponents/todaysMealTab/MealContainer";
+import ProgressContainer from "./mainComponents/progressTab/ProgressContainer";
+import RecipeTab from "./mainComponents/challengeContent/RecipeTab";
+import ShoppingTab from "./mainComponents/challengeContent/ShoppingTab";
+import { getCurrentChallenge, getChallengeStats, getToken, quitChallenge } from '../../api/backend';
 
 function ChallengeMain() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [isLoading, setIsLoading] = useState(true);
     const [challengeData, setChallengeData] = useState(null);
     const [statsData, setStatsData] = useState(null);
+    const [isQuitting, setIsQuitting] = useState(false);
+    const challengeDataRef = useRef(challengeData);
+
+    // 현재 활성 탭 결정
+    const getActiveTab = () => {
+        const path = location.pathname;
+        if (path.includes('/meal')) return 'meal';
+        if (path.includes('/progress')) return 'progress';
+        if (path.includes('/recipe')) return 'recipe';
+        if (path.includes('/shopping')) return 'shopping';
+        return 'meal'; // 기본값
+    };
+
+    const activeTab = getActiveTab();
+
+    // challengeData가 변경될 때마다 ref 업데이트
+    useEffect(() => {
+        challengeDataRef.current = challengeData;
+    }, [challengeData]);
 
     useEffect(() => {
-        const fetchChallengeData = async () => {
+        const fetchChallengeData = async (showLoading = true) => {
             try {
-                setIsLoading(true);
+                if (showLoading) {
+                    setIsLoading(true);
+                }
                 const token = getToken();
 
                 if (!token) {
@@ -45,28 +71,58 @@ function ChallengeMain() {
                 console.error('데이터 조회 실패:', error);
                 navigate('/challenge/choice');
             } finally {
-                setIsLoading(false);
+                if (showLoading) {
+                    setIsLoading(false);
+                }
             }
         };
 
-        fetchChallengeData();
+        // 초기 마운트 시에만 로딩 표시하며 데이터 불러오기
+        fetchChallengeData(true);
 
-        // 페이지 포커스 시 데이터 새로고침
+        // 페이지 포커스 시 데이터 새로고침 (이미 데이터가 있으면 로딩 표시 없이)
         const handleFocus = () => {
-            fetchChallengeData();
+            // ref를 사용하여 최신 challengeData 참조
+            if (challengeDataRef.current) {
+                fetchChallengeData(false);
+            }
+            // 데이터가 없을 때는 초기 로딩이 이미 처리되므로 여기서는 아무것도 하지 않음
         };
 
         window.addEventListener('focus', handleFocus);
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                fetchChallengeData();
+        
+        // visibilitychange 이벤트: 파일 선택 다이얼로그가 열릴 때는 무시
+        const handleVisibilityChange = () => {
+            // 파일 선택 중일 가능성이 있으므로 약간의 지연 후 확인
+            setTimeout(() => {
+                if (!document.hidden) {
+                    // ref를 사용하여 최신 challengeData 참조
+                    if (challengeDataRef.current) {
+                        fetchChallengeData(false);
+                    }
+                    // 데이터가 없을 때는 초기 로딩이 이미 처리되므로 여기서는 아무것도 하지 않음
+                }
+            }, 500); // 500ms 지연
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // 포인트 업데이트 이벤트 리스너 추가
+        const handlePointsUpdated = () => {
+            console.log('🔄 포인트 업데이트 이벤트 수신, 데이터 새로고침');
+            if (challengeDataRef.current) {
+                fetchChallengeData(false);
             }
-        });
+        };
+        
+        window.addEventListener('pointsUpdated', handlePointsUpdated);
 
         return () => {
             window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pointsUpdated', handlePointsUpdated);
         };
-    }, [navigate]);
+    }, [navigate]); // challengeData를 dependency에서 제거하고 ref 사용
 
     // 로딩 중일 때
     if (isLoading) {
@@ -144,10 +200,50 @@ function ChallengeMain() {
                         <h3 className="text-lg font-normal font-['Nunito'] text-gray-900">
                             챌린지 진행률
                         </h3>
-                        <div className="px-4 py-1 bg-teal-50 rounded-full">
-                            <span className="text-sm font-medium font-['Nunito'] text-gray-600">
-                                {currentDay}/{totalDays}일
-                            </span>
+                        <div className="flex items-center gap-3">
+                            <div className="px-4 py-1 bg-teal-50 rounded-full">
+                                <span className="text-sm font-medium font-['Nunito'] text-gray-600">
+                                    {currentDay}/{totalDays}일
+                                </span>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    const confirmed = window.confirm(
+                                        '정말로 챌린지를 종료하시겠습니까?\n\n' +
+                                        '챌린지를 종료하면 진행률이 저장되지만,\n' +
+                                        '새로운 챌린지를 시작할 수 있습니다.'
+                                    );
+                                    
+                                    if (!confirmed) return;
+                                    
+                                    try {
+                                        setIsQuitting(true);
+                                        const token = getToken();
+                                        if (!token) {
+                                            alert('로그인이 필요합니다.');
+                                            navigate('/login');
+                                            return;
+                                        }
+                                        
+                                        await quitChallenge(challengeData.id, token);
+                                        alert('챌린지가 종료되었습니다.');
+                                        navigate('/challenge/choice');
+                                    } catch (error) {
+                                        console.error('챌린지 종료 실패:', error);
+                                        alert(`챌린지 종료에 실패했습니다.\n${error.message || '다시 시도해주세요.'}`);
+                                    } finally {
+                                        setIsQuitting(false);
+                                    }
+                                }}
+                                disabled={isQuitting}
+                                className={`px-4 py-2 rounded-full text-sm font-medium font-['Nunito'] transition-all ${
+                                    isQuitting
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-red-500 hover:bg-red-600 text-white cursor-pointer'
+                                }`}
+                            >
+                                {isQuitting ? '종료 중...' : '챌린지 종료'}
+                            </button>
                         </div>
                     </div>
                     <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
@@ -161,8 +257,28 @@ function ChallengeMain() {
                 {/* Challenge Tabs */}
                 <ChallengeTabs />
 
-                {/* Tab Content (Outlet) */}
-                <Outlet />
+                {/* Tab Content - 모든 탭을 렌더링하되, CSS로 보이기/숨기기 제어 */}
+                <div className="relative">
+                    {/* 오늘의 식단 */}
+                    <div className={activeTab === 'meal' ? 'block' : 'hidden'}>
+                        <MealContainer />
+                    </div>
+                    
+                    {/* 진행 현황 */}
+                    <div className={activeTab === 'progress' ? 'block' : 'hidden'}>
+                        <ProgressContainer />
+                    </div>
+                    
+                    {/* 레시피 */}
+                    <div className={activeTab === 'recipe' ? 'block' : 'hidden'}>
+                        <RecipeTab />
+                    </div>
+                    
+                    {/* 쇼핑 */}
+                    <div className={activeTab === 'shopping' ? 'block' : 'hidden'}>
+                        <ShoppingTab />
+                    </div>
+                </div>
             </div>
         </div>
     );

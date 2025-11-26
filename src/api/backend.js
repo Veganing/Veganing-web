@@ -108,6 +108,16 @@ export const quitChallenge = async (challengeId, token) => {
   return await apiClient.put(API_ENDPOINTS.CHALLENGE.QUIT(challengeId), {}, token);
 };
 
+/**
+ * 포인트 추가 및 레벨업 (식단 저장 시) (JWT 토큰 필요)
+ * @param {number} points - 추가할 포인트 (기본값: 200)
+ * @param {string} token - JWT 토큰
+ * @returns {Promise<Object>} - { message, user }
+ */
+export const addPoints = async (points = 200, token) => {
+  return await apiClient.post(API_ENDPOINTS.CHALLENGE.ADD_POINTS, { points }, token);
+};
+
 // ==========================================
 // 커뮤니티 API
 // ==========================================
