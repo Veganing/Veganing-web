@@ -1,7 +1,10 @@
-// src/pages/Home.jsx
+
+import { CarbonFootprint } from "./components/CarbonFootprint";
+import HeroSection from "./components/HeroSection";
+import { VeganBenefits } from "./components/VeganBenefits";
+import WhatIsVegan from "./components/WhatIsVegan";
 import React, { useEffect, useState } from "react";
 import Login from "../user/Login.jsx";
-
 function Home() {
     //로그인 화면 표시 여부
     const [showLogin, setShowLogin] = useState(false);
@@ -34,10 +37,14 @@ function Home() {
     }
     
     return (
-        <div>
-            홈
-        </div>
+        <>
+            <HeroSection />
+            <WhatIsVegan />
+            <VeganBenefits />
+            <CarbonFootprint />
+        </>
     );
 }
 
 export default Home;
+
