@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
     STATS: `${API_BASE_URL}/api/challenge/stats`,
     PROGRESS: (id) => `${API_BASE_URL}/api/challenge/${id}/progress`,
     QUIT: (id) => `${API_BASE_URL}/api/challenge/${id}/quit`,
+    ADD_POINTS: `${API_BASE_URL}/api/challenge/add-points`,
   },
 
   // 커뮤니티 관련
@@ -27,6 +28,8 @@ export const API_ENDPOINTS = {
     POSTS: `${API_BASE_URL}/api/community/posts`,
     POST_DETAIL: (id) => `${API_BASE_URL}/api/community/posts/${id}`,
     POST_LIKE: (id) => `${API_BASE_URL}/api/community/posts/${id}/like`,
+    POST_COMMENTS: (id) => `${API_BASE_URL}/api/community/posts/${id}/comments`,
+    COMMENT_DELETE: (id) => `${API_BASE_URL}/api/community/comments/${id}`,
     CHALLENGES: `${API_BASE_URL}/api/community/challenges`,
     CHALLENGE_DETAIL: (id) => `${API_BASE_URL}/api/community/challenges/${id}`,
     CHALLENGE_JOIN: (id) => `${API_BASE_URL}/api/community/challenges/${id}/join`,
@@ -51,33 +54,77 @@ export const getDefaultHeaders = (token) => {
 export const apiClient = {
   // GET 요청
   get: async (url, token = null) => {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: getDefaultHeaders(token),
-    });
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getDefaultHeaders(token),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'API 요청 실패');
+      if (!response.ok) {
+        let errorMessage = 'API 요청 실패';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return response.json();
+    } catch (error) {
+      // 네트워크 에러나 기타 에러 처리
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.');
+      }
+      throw error;
     }
-
-    return response.json();
   },
 
   // POST 요청
   post: async (url, data, token = null) => {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: getDefaultHeaders(token),
-      body: JSON.stringify(data),
-    });
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: getDefaultHeaders(token),
+        body: JSON.stringify(data),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'API 요청 실패');
+      if (!response.ok) {
+        let errorMessage = 'API 요청 실패';
+        let errorData = null;
+        try {
+          errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorData.details || `HTTP ${response.status}: ${response.statusText}`;
+          console.error('❌ API 에러 응답:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData: errorData
+          });
+        } catch (e) {
+          const text = await response.text();
+          console.error('❌ API 에러 응답 (JSON 파싱 실패):', text);
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        
+        // 에러 객체에 원본 데이터 포함
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.error = errorData?.error || errorMessage;
+        error.details = errorData?.details;
+        error.existingChallenge = errorData?.existingChallenge;
+        error.rawData = errorData;
+        throw error;
+      }
+
+      return response.json();
+    } catch (error) {
+      // 네트워크 에러나 기타 에러 처리
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.');
+      }
+      throw error;
     }
-
-    return response.json();
   },
 
   // PUT 요청

@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useState, memo} from 'react'
 import useMealUpload from "../../../../hooks/useMealUpload";
 
 import MealUploadCard from "./MealUploadCard";
@@ -6,7 +6,7 @@ import LLMAnalysis from "./LLMAnalysis";
 import MealIndex from "./MealIndex";
 import UploadButton from './UploadButton';
 
-function MealContainer() {
+const MealContainer = memo(function MealContainer() {
     const [mealsCount, setMealsCount] = useState(0);
     const {
         analysisResult,
@@ -22,7 +22,9 @@ function MealContainer() {
     } = useMealUpload();
 
     const handleSaveComplete = () => {
+        // 업로드 폼 리셋
         resetUpload();
+        // 오늘의 식단 기록 초기화 (전체 저장 후에는 기록 삭제)
         window.resetMealIndex?.();
     };
 
@@ -51,6 +53,6 @@ function MealContainer() {
             <UploadButton mealsCount={mealsCount} onSaveComplete={handleSaveComplete} />
         </div>
     );
-}
+});
 
 export default MealContainer;

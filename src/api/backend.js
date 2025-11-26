@@ -108,6 +108,16 @@ export const quitChallenge = async (challengeId, token) => {
   return await apiClient.put(API_ENDPOINTS.CHALLENGE.QUIT(challengeId), {}, token);
 };
 
+/**
+ * 포인트 추가 및 레벨업 (식단 저장 시) (JWT 토큰 필요)
+ * @param {number} points - 추가할 포인트 (기본값: 200)
+ * @param {string} token - JWT 토큰
+ * @returns {Promise<Object>} - { message, user }
+ */
+export const addPoints = async (points = 200, token) => {
+  return await apiClient.post(API_ENDPOINTS.CHALLENGE.ADD_POINTS, { points }, token);
+};
+
 // ==========================================
 // 커뮤니티 API
 // ==========================================
@@ -171,6 +181,36 @@ export const deletePost = async (postId, token) => {
  */
 export const likePost = async (postId, token) => {
   return await apiClient.post(API_ENDPOINTS.COMMUNITY.POST_LIKE(postId), {}, token);
+};
+
+/**
+ * 게시물 댓글 목록 조회
+ * @param {number} postId - 게시물 ID
+ * @returns {Promise<Object>} - { comments }
+ */
+export const getComments = async (postId) => {
+  return await apiClient.get(API_ENDPOINTS.COMMUNITY.POST_COMMENTS(postId));
+};
+
+/**
+ * 댓글 작성 (JWT 토큰 필요)
+ * @param {number} postId - 게시물 ID
+ * @param {Object} commentData - { content }
+ * @param {string} token - JWT 토큰
+ * @returns {Promise<Object>} - { message, comment }
+ */
+export const createComment = async (postId, commentData, token) => {
+  return await apiClient.post(API_ENDPOINTS.COMMUNITY.POST_COMMENTS(postId), commentData, token);
+};
+
+/**
+ * 댓글 삭제 (JWT 토큰 필요)
+ * @param {number} commentId - 댓글 ID
+ * @param {string} token - JWT 토큰
+ * @returns {Promise<Object>} - { message }
+ */
+export const deleteComment = async (commentId, token) => {
+  return await apiClient.delete(API_ENDPOINTS.COMMUNITY.COMMENT_DELETE(commentId), token);
 };
 
 /**
