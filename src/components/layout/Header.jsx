@@ -14,6 +14,7 @@ import shopColored from "../../assets/nav/shopColored.svg";
 import map from "../../assets/nav/map.svg";
 import mapColored from "../../assets/nav/mapColored.svg";
 
+
 function Header() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -74,7 +75,11 @@ function Header() {
                     {/* 가운데 네비게이션 */}
                     <nav className="flex-1 flex justify-center items-center gap-3">
                         {navItems.map((item) => {
-                            const isActive = location.pathname === item.path;
+                            //const isActive = location.pathname === item.path;
+                            const isActive =
+                                item.path === "/"
+                                    ? location.pathname === "/"
+                                    : location.pathname.startsWith(item.path);
                             return (
                                 <Link
                                     key={item.path}
@@ -113,10 +118,24 @@ function Header() {
                                 <button
                                     type="button"
                                     onClick={() => navigate("/mypage")}
-                                    className="px-3 h-9 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-2xl shadow-sm text-sm hover:opacity-90"
+                                    className="w-28 h-9 flex items-center justify-center
+                                            bg-gradient-to-r from-cyan-500 to-emerald-500
+                                            text-white rounded-2xl shadow-sm text-sm hover:opacity-90"
                                 >
                                     마이페이지
                                 </button>
+
+                                {/*장바구니 버튼*/ }
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/cart")}
+                                    className="w-28 h-9 flex items-center justify-center
+                                                bg-gradient-to-r from-cyan-500 to-emerald-500
+                                                text-white rounded-2xl shadow-sm text-sm hover:opacity-90"
+                                >
+                                    장바구니
+                                </button>
+
 
                                 <button
                                     type="button"
