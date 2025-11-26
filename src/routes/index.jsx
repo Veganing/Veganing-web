@@ -6,6 +6,7 @@ import Home from "../pages/home/Home";
 import ChallengeChoice from "../pages/challenge/ChallengeChoice";
 import ChallengeMain from "../pages/challenge/ChallengeMain";
 import Shopping from "../pages/shopping/Shopping";
+import ProductDetail from "../pages/shopping/ProductDetail"; 
 import Restaurant from "../pages/restaurant/Restaurant";
 import Community from "../pages/community/Community";
 import NotFound from "../pages/NotFound";
@@ -16,11 +17,15 @@ import ProtectedRoute from "./ProtectedRoute";
 import ForgotPassword from "../pages/user/ForgotPassword.jsx"; // [추가] 비밀번호 찾기 페이지
 import CreatePost from "../pages/community/CreatePost"; // 게시글 작성 페이지
 
+
 // Challenge Main Components import (경로 수정!)
 import MealContainer from "../pages/challenge/mainComponents/todaysMealTab/MealContainer";
 import ProgressContainer from "../pages/challenge/mainComponents/progressTab/ProgressContainer";
 import RecipeTab from "../pages/challenge/mainComponents/challengeContent/RecipeTab";
 import ShoppingTab from "../pages/challenge/mainComponents/challengeContent/ShoppingTab";
+import CartPage from "../pages/user/CartPage.jsx";
+import {OrderPage} from "../pages/user/OrderPage.jsx";
+
 
 const router = createBrowserRouter([
     {
@@ -53,6 +58,10 @@ const router = createBrowserRouter([
                 element: <Shopping />,
             },
             {
+                path: "store/:productId",
+                element: <ProductDetail />,
+            },
+            {
                 path: "map",
                 element: <Restaurant />,
             },
@@ -75,6 +84,14 @@ const router = createBrowserRouter([
                         <MyPage />
                     </ProtectedRoute>
                 ),
+            },
+            {
+                path: "cart",
+                element: <CartPage />
+            },
+            {
+                path: "order",
+                element: <OrderPage />
             },
             {
                 path: "challenge/main",
