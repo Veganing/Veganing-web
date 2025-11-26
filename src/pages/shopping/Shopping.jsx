@@ -1,4 +1,6 @@
-import useProductSearch from '../../hooks/useProductSearch';
+//import useProductSearch from '../../hooks/useProductSearch';
+
+import React, { useState, useMemo } from "react";
 import SearchBar from './components/SearchBar';
 import CategoryTabs from './components/CategoryTabs';
 import ProductCard from './components/ProductCard';
@@ -8,9 +10,10 @@ import freeDel from "../../assets/shopping/freeDel.svg";
 import shield from "../../assets/shopping/shield.svg";
 import point from "../../assets/shopping/point.svg";
 import gift from "../../assets/shopping/gift.svg";
+import { PRODUCTS } from "../../data/products";
 
 function Shopping() {
-    const {
+    /*const {
         sortOrder,
         category,
         products,
@@ -21,7 +24,82 @@ function Shopping() {
         handleSortChange,
         handlePageChange,
         handleCategoryChange
-    } = useProductSearch('food');
+    } = useProductSearch('food');*/
+
+    // 상태값들
+    const [sortOrder, setSortOrder] = useState("default");
+    const [category, setCategory] = useState("ALL");
+    const [searchKeyword, setSearchKeyword] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const pageSize = 8;
+
+    const { pageProducts, hasMore, totalCount } = useMemo(() => {
+
+        // 1) 카테고리 필터
+        const filteredByCategory = PRODUCTS.filter((p) => {
+            if (category === "ALL") return true;
+            return p.category === category;
+        });
+
+        // 2) 검색어 필터
+        const keyword = searchKeyword.trim().toLowerCase();
+        const filteredByKeyword = filteredByCategory.filter((p) => {
+            if (keyword === "") return true;
+            return (
+                p.name.toLowerCase().includes(keyword) ||
+                p.title.toLowerCase().includes(keyword)
+            );
+        });
+
+        // 3) 정렬
+        const sorted = [...filteredByKeyword].sort((a, b) => {
+            if (sortOrder === "price_asc") {
+                return a.price - b.price;
+            }
+            if (sortOrder === "price_desc") {
+                return b.price - a.price;
+            }
+            return a.id - b.id; // default
+        });
+
+        // 4) 페이지네이션
+        const total = sorted.length;
+        const startIdx = (currentPage - 1) * pageSize;
+        const endIdx = startIdx + pageSize;
+        const slice = sorted.slice(startIdx, endIdx);
+
+        const hasMoreLocal = endIdx < total;
+
+        return {
+            pageProducts: slice,
+            hasMore: hasMoreLocal,
+            totalCount: total
+        };
+
+    }, [category, searchKeyword, sortOrder, currentPage]);
+
+    // 핸들러들
+    const handleSearch = (keyword) => {
+        setSearchKeyword(keyword);
+        setCurrentPage(1);
+    };
+
+    const handleSortChange = (order) => {
+        setSortOrder(order);
+        setCurrentPage(1);
+    };
+
+    const handleCategoryChange = (nextCategory) => {
+        setCategory(nextCategory);
+        setCurrentPage(1);
+    };
+
+    const handlePageChange = (nextPage) => {
+        setCurrentPage(nextPage);
+    };
+
+    const loading = false; // API 제거했으므로 항상 false
 
     // 혜택 카드 데이터
     const benefits = [
@@ -84,14 +162,14 @@ function Shopping() {
                             <div className="text-center py-20">
                                 <div className="text-lg text-gray-500">상품을 불러오는 중...</div>
                             </div>
-                        ) : products.length === 0 ? (
+                        ) : pageProducts.length === 0 ? (
                             <div className="text-center py-20">
                                 <div className="text-lg text-gray-500">검색 결과가 없습니다.</div>
                             </div>
                         ) : (
                             <>
                                 <div className="grid grid-cols-4 gap-6">
-                                    {products.map((product, index) => (
+                                    {pageProducts.map((product, index) => (
                                         <ProductCard key={index} product={product} />
                                     ))}
                                 </div>

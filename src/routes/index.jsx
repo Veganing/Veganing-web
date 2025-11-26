@@ -6,6 +6,7 @@ import Home from "../pages/home/Home";
 import ChallengeChoice from "../pages/challenge/ChallengeChoice";
 import ChallengeMain from "../pages/challenge/ChallengeMain";
 import Shopping from "../pages/shopping/Shopping";
+import ProductDetail from "../pages/shopping/ProductDetail"; 
 import Restaurant from "../pages/restaurant/Restaurant";
 import Community from "../pages/community/Community";
 import NotFound from "../pages/NotFound";
@@ -55,6 +56,10 @@ const router = createBrowserRouter([
             {
                 path: "store",
                 element: <Shopping />,
+            },
+            {
+                path: "store/:productId",
+                element: <ProductDetail />,
             },
             {
                 path: "map",
