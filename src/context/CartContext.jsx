@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState } from "react";
 
 // 1) 처음부터 장바구니에 들어 있을 더미 데이터
-const initialCartItems = [
+const initialCartItems = [/*
     {
         id: 1,
         name: "비건 단백질 쉐이크",
@@ -39,7 +39,7 @@ const initialCartItems = [
         image:
             "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&h=400&fit=crop",
         category: "음료",
-    },
+    },*/
 ];
 
 const CartContext = createContext(null);
