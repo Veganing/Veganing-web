@@ -1,5 +1,6 @@
 // Option A — Tailwind 유지+간소화
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { ImageWithFallback } from "../figma-temp/ImageWithFallback";
@@ -27,6 +28,9 @@ const dailyImpact = [
 ];
 
 export function CarbonFootprint() {
+
+    const navigate = useNavigate();
+
     return (
         <section className="py-24 bg-gradient-to-br from-blue-50 via-green-50 to-emerald-50">
             <div className={wrapper}>
@@ -84,7 +88,8 @@ export function CarbonFootprint() {
                     </div>
 
                     <div className="text-center mt-10">
-                        <Button size="lg" className="bg-blue-600 text-white">
+                        <Button size="lg" className="bg-blue-600 text-white"
+                            onClick={() => navigate("/challenge/main")}>
                             지구를 위한 첫걸음 시작하기
                         </Button>
                     </div>

@@ -2,6 +2,7 @@
 import { CarbonFootprint } from "./components/CarbonFootprint";
 import HeroSection from "./components/HeroSection";
 import { VeganBenefits } from "./components/VeganBenefits";
+import { VeganRecipes } from "./components/VeganRecipes";
 import WhatIsVegan from "./components/WhatIsVegan";
 import React, { useEffect, useState } from "react";
 import Login from "../user/Login.jsx";
@@ -12,7 +13,7 @@ function Home() {
     //이 페이지 (Home)가 마운트될 떄 전역 함수 등록
     useEffect(() => {
         window.openLogin = () => setShowLogin(true); //Header의 버튼이 이걸 부름
-        return () => {delete window.openLogin; }; //페이지 떠나면 정리
+        return () => { delete window.openLogin; }; //페이지 떠나면 정리
     }, []);
 
     //Login.jsx에서 성공 시 다시 홈으로 돌아오게
@@ -35,13 +36,16 @@ function Home() {
             />
         );
     }
-    
+
+
     return (
         <>
+
             <HeroSection />
             <WhatIsVegan />
             <VeganBenefits />
             <CarbonFootprint />
+            <VeganRecipes />
         </>
     );
 }
