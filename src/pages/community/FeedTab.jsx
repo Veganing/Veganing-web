@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "./components/ui/Avatar";
 import { Input } from "./components/ui/Input";
 import { MapPinIcon, HeartIcon, MessageCircleIcon, Plus, X, Send } from "lucide-react";
 import { likePost, getToken, getComments, createComment, deleteComment } from "../../api/backend";
+import communityTree from "../../assets/community/tree_iv.jpg";
 
 const FeedTab = ({
     feedPosts = [],
@@ -41,45 +42,45 @@ const FeedTab = ({
         }
 
         const isLiked = likedPosts.has(postId);
-        const newLikes = isLiked ? currentLikes - 1 : currentLikes + 2; // 좋아요 취소 시 -1, 좋아요 시 +2
 
         try {
             setLikingPosts(prev => new Set(prev).add(postId));
-            
-            // 낙관적 업데이트 (즉시 UI 업데이트)
-            if (onPostUpdate) {
-                onPostUpdate(postId, { likes: newLikes });
-            }
-            
+
             // 좋아요 상태 토글
             if (isLiked) {
-                // 좋아요 취소
+                // 좋아요 취소 (프론트엔드에서만 처리)
                 setLikedPosts(prev => {
                     const next = new Set(prev);
                     next.delete(postId);
                     return next;
                 });
-                
+
+                // 낙관적 업데이트
+                if (onPostUpdate) {
+                    onPostUpdate(postId, { likes: Math.max(0, currentLikes - 1) });
+                }
+
                 // TODO: 백엔드에 좋아요 취소 API가 추가되면 여기서 호출
                 // 현재는 프론트엔드에서만 상태 관리
-                
+
             } else {
                 // 좋아요 추가
                 setLikedPosts(prev => new Set(prev).add(postId));
-                
-                // 백엔드에 좋아요 요청
+
+                // 백엔드에 좋아요 요청 (낙관적 업데이트 없이 백엔드 응답만 사용)
                 const response = await likePost(postId, token);
-                
+
                 // 백엔드 응답으로 실제 좋아요 수 업데이트
-                // 백엔드가 +1을 반환하므로, +2를 유지하려면 조정 필요
                 if (onPostUpdate && response.likes !== undefined) {
-                    // 백엔드가 +1을 했으므로, 추가로 +1을 더해서 총 +2가 되도록
-                    onPostUpdate(postId, { likes: response.likes + 1 });
+                    onPostUpdate(postId, { likes: response.likes });
+                } else if (onPostUpdate) {
+                    // 응답에 likes가 없으면 낙관적 업데이트로 +1
+                    onPostUpdate(postId, { likes: currentLikes + 1 });
                 }
             }
         } catch (error) {
             console.error("좋아요 처리 실패:", error);
-            
+
             // 실패 시 이전 상태로 되돌리기
             if (isLiked) {
                 // 좋아요 취소 실패 시 다시 좋아요 상태로
@@ -92,11 +93,12 @@ const FeedTab = ({
                     return next;
                 });
             }
-            
+
+            // 원래 값으로 복구
             if (onPostUpdate) {
                 onPostUpdate(postId, { likes: currentLikes });
             }
-            
+
             alert(`좋아요 처리에 실패했습니다: ${error.message || "알 수 없는 오류"}`);
         } finally {
             setLikingPosts(prev => {
@@ -110,7 +112,7 @@ const FeedTab = ({
     // 댓글 목록 토글 핸들러
     const handleToggleComments = async (postId) => {
         const isExpanded = expandedComments.has(postId);
-        
+
         if (isExpanded) {
             // 댓글 닫기
             setExpandedComments(prev => {
@@ -121,7 +123,7 @@ const FeedTab = ({
         } else {
             // 댓글 열기
             setExpandedComments(prev => new Set(prev).add(postId));
-            
+
             // 댓글이 아직 로드되지 않았다면 로드
             if (!comments[postId]) {
                 try {
@@ -129,7 +131,7 @@ const FeedTab = ({
                     console.log("댓글 조회 요청 - postId:", postId);
                     const response = await getComments(postId);
                     console.log("댓글 조회 응답:", response);
-                    
+
                     if (response.comments) {
                         setComments(prev => ({ ...prev, [postId]: response.comments }));
                     }
@@ -160,22 +162,22 @@ const FeedTab = ({
 
         try {
             setSubmittingComments(prev => new Set(prev).add(postId));
-            
+
             const response = await createComment(postId, { content: content.trim() }, token);
-            
+
             // 댓글 목록에 추가
             if (response.comment) {
                 setComments(prev => ({
                     ...prev,
                     [postId]: [...(prev[postId] || []), response.comment]
                 }));
-                
+
                 // 댓글 수 업데이트
                 if (onPostUpdate) {
                     const currentCount = feedPosts.find(p => p.id === postId)?.comments || 0;
                     onPostUpdate(postId, { comments: currentCount + 1 });
                 }
-                
+
                 // 입력 필드 초기화
                 setCommentTexts(prev => ({ ...prev, [postId]: "" }));
             }
@@ -205,13 +207,13 @@ const FeedTab = ({
 
         try {
             await deleteComment(commentId, token);
-            
+
             // 댓글 목록에서 제거
             setComments(prev => ({
                 ...prev,
                 [postId]: (prev[postId] || []).filter(c => c.id !== commentId)
             }));
-            
+
             // 댓글 수 업데이트
             if (onPostUpdate) {
                 const currentCount = feedPosts.find(p => p.id === postId)?.comments || 0;
@@ -226,7 +228,7 @@ const FeedTab = ({
     // 시간 변환 헬퍼 함수
     const formatTimeAgo = (dateString) => {
         if (!dateString) return "방금 전";
-        
+
         const now = new Date();
         const postDate = new Date(dateString);
         const diffMs = now - postDate;
@@ -247,7 +249,7 @@ const FeedTab = ({
                 {/* 게시글 생성 버튼 */}
                 <Button
                     onClick={onCreatePost}
-                    className="w-full bg-[#00a63e] text-white hover:bg-[#008235] [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-3 transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:opacity-90 [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-3 transition-colors flex items-center justify-center gap-2"
                 >
                     <Plus className="w-5 h-5" />
                     새 게시글 작성하기
@@ -325,10 +327,10 @@ const FeedTab = ({
 
                             {post.imageUrl && (
                                 <div className="mb-4">
-                                    <img 
-                                        src={post.imageUrl} 
-                                        alt="게시글 이미지" 
-                                        className="w-full h-auto max-h-96 object-contain rounded-lg border-2 border-gray-200" 
+                                    <img
+                                        src={post.imageUrl}
+                                        alt="게시글 이미지"
+                                        className="w-full h-auto max-h-96 object-contain rounded-lg border-2 border-gray-200"
                                     />
                                 </div>
                             )}
@@ -346,33 +348,30 @@ const FeedTab = ({
                             </div>
 
                             <div className="flex items-center gap-4">
-                                <Button 
-                                    variant="ghost" 
-                                    className={`h-auto p-0 flex items-center gap-2 ${
-                                        likedPosts.has(post.id) 
-                                            ? 'text-[#e60076]' 
+                                <Button
+                                    variant="ghost"
+                                    className={`h-auto p-0 flex items-center gap-2 ${likedPosts.has(post.id)
+                                            ? 'text-[#e60076]'
                                             : 'text-[#495565] hover:text-[#e60076]'
-                                    } transition-colors`}
+                                        } transition-colors`}
                                     onClick={() => handleLike(post.id, post.likes)}
-                                    disabled={likingPosts.has(post.id) || likedPosts.has(post.id) || !isLoggedIn}
+                                    disabled={likingPosts.has(post.id) || !isLoggedIn}
                                 >
-                                    <HeartIcon 
-                                        className={`w-4 h-4 ${
-                                            likedPosts.has(post.id) ? 'fill-[#e60076]' : ''
-                                        }`} 
+                                    <HeartIcon
+                                        className={`w-4 h-4 ${likedPosts.has(post.id) ? 'fill-[#e60076]' : ''
+                                            }`}
                                     />
                                     <span className="[font-family:'Nunito',Helvetica] font-medium text-sm tracking-[0] leading-5">
                                         {likingPosts.has(post.id) ? '...' : post.likes}
                                     </span>
                                 </Button>
 
-                                <Button 
-                                    variant="ghost" 
-                                    className={`h-auto p-0 flex items-center gap-2 ${
-                                        expandedComments.has(post.id)
+                                <Button
+                                    variant="ghost"
+                                    className={`h-auto p-0 flex items-center gap-2 ${expandedComments.has(post.id)
                                             ? 'text-[#00a63e]'
                                             : 'text-[#495565] hover:text-[#00a63e]'
-                                    } transition-colors cursor-pointer`}
+                                        } transition-colors cursor-pointer`}
                                     onClick={() => handleToggleComments(post.id)}
                                 >
                                     <MessageCircleIcon className="w-4 h-4" />
@@ -408,18 +407,18 @@ const FeedTab = ({
                                                                 <span className="[font-family:'Nunito',Helvetica] font-normal text-xs text-[#697282]">
                                                                     {formatTimeAgo(comment.createdAt)}
                                                                 </span>
-                                                                {comment.author?.id && getToken() && 
-                                                                 localStorage.getItem('authToken') && 
-                                                                 JSON.parse(localStorage.getItem('user') || '{}').id === comment.author.id && (
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        className="h-auto p-0 text-xs text-red-500 hover:text-red-700"
-                                                                        onClick={() => handleDeleteComment(comment.id, post.id)}
-                                                                    >
-                                                                        삭제
-                                                                    </Button>
-                                                                )}
+                                                                {comment.author?.id && getToken() &&
+                                                                    localStorage.getItem('authToken') &&
+                                                                    JSON.parse(localStorage.getItem('user') || '{}').id === comment.author.id && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            className="h-auto p-0 text-xs text-red-500 hover:text-red-700"
+                                                                            onClick={() => handleDeleteComment(comment.id, post.id)}
+                                                                        >
+                                                                            삭제
+                                                                        </Button>
+                                                                    )}
                                                             </div>
                                                             <p className="[font-family:'Nunito',Helvetica] font-normal text-sm text-[#354152]">
                                                                 {comment.content}
@@ -479,7 +478,6 @@ const FeedTab = ({
 
                         {challengeLoading ? (
                             <div className="flex flex-col gap-4 items-center py-8">
-                                <div className="text-2xl">⏳</div>
                                 <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm">
                                     로딩 중...
                                 </p>
@@ -497,19 +495,19 @@ const FeedTab = ({
                                 </p>
                                 <Button
                                     onClick={goToChallenge}
-                                    className="w-full bg-[#00a63e] text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2 hover:bg-[#008235] transition-colors"
+                                    className="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2 hover:opacity-90 transition-colors"
                                 >
                                     챌린지 페이지로 이동
                                 </Button>
                             </div>
                         ) : (
                             <div className="flex flex-col gap-4">
-                                <div className="text-3xl text-center">
-                                    {currentChallenge.difficulty === "easy"
-                                        ? "🌱"
-                                        : currentChallenge.difficulty === "medium"
-                                        ? "🌿"
-                                        : "🌳"}
+                                <div className="flex justify-center items-center">
+                                    <img
+                                        src={communityTree}
+                                        alt="나무"
+                                        className="w-24 h-24 object-contain animate-pulse"
+                                    />
                                 </div>
 
                                 <h4 className="[font-family:'Nunito',Helvetica] font-semibold text-neutral-950 text-base text-center tracking-[0] leading-6">
@@ -517,7 +515,18 @@ const FeedTab = ({
                                 </h4>
 
                                 <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
-                                    {currentChallenge.description || "비건 챌린지에 도전 중입니다!"}
+                                    {currentChallenge.description ?
+                                        currentChallenge.description
+                                            .replace(/vegan/gi, '비건')
+                                            .replace(/lacto/gi, '락토')
+                                            .replace(/ovo/gi, '오보')
+                                            .replace(/pescatarian/gi, '페스카테리언')
+                                            .replace(/flexitarian/gi, '플렉시테리언')
+                                            .replace(/Healthy vegan lifestyle/gi, '건강한 비건 라이프스타일')
+                                            .replace(/healthy/gi, '건강한')
+                                            .replace(/lifestyle/gi, '라이프스타일')
+                                            .replace(/목표: /g, '목표: ')
+                                        : "비건 챌린지에 도전 중입니다!"}
                                 </p>
 
                                 <div className="flex items-center justify-between text-[#495565] text-sm">
@@ -538,21 +547,21 @@ const FeedTab = ({
 
                                 <div className="flex items-center justify-center gap-4 text-sm">
                                     <span className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e]">
-                                        ⭐ {currentChallenge.points || 0}pts
+                                        ⭐ {currentChallenge.points || 0}포인트
                                     </span>
                                     <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
                                         난이도:{" "}
                                         {currentChallenge.difficulty === "easy"
                                             ? "쉬움"
                                             : currentChallenge.difficulty === "medium"
-                                            ? "보통"
-                                            : "어려움"}
+                                                ? "보통"
+                                                : "어려움"}
                                     </span>
                                 </div>
 
                                 <Button
                                     onClick={goToChallenge}
-                                    className="w-full bg-[#00a63e] text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2 hover:bg-[#008235] transition-colors"
+                                    className="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-white [font-family:'Nunito',Helvetica] font-medium text-sm rounded-lg h-auto py-2 hover:opacity-90 transition-colors"
                                 >
                                     챌린지 상세보기
                                 </Button>

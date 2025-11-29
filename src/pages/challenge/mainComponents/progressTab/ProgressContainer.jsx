@@ -1,7 +1,38 @@
+import { useEffect } from "react";
 import useCarbonHistory from "../../../../hooks/useCarbonHistory";
 
 function ProgressContainer() {
-    const { carbonHistory, totalCO2, getGrowthStage } = useCarbonHistory();
+    const { carbonHistory, totalCO2, getGrowthStage, loadData } = useCarbonHistory();
+
+    // 페이지가 보일 때마다 데이터 새로고침
+    useEffect(() => {
+        // 초기 로드
+        if (loadData) {
+            loadData();
+        }
+
+        // 페이지 포커스 시 데이터 새로고침
+        const handleFocus = () => {
+            if (loadData) {
+                loadData();
+            }
+        };
+
+        // visibilitychange 이벤트로 페이지가 다시 보일 때 데이터 새로고침
+        const handleVisibilityChange = () => {
+            if (!document.hidden && loadData) {
+                loadData();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [loadData]);
 
     return (
         <div className="w-full flex flex-col bg-white/90 rounded-[48px] shadow-2xl p-6 gap-6">
