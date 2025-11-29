@@ -12,6 +12,7 @@ import {
 import RankingTab from "./RankingTab";
 import FeedTab from "./FeedTab";
 import ChallengeTab from "./ChallengeTab";
+import RecipeRankingTab from "./RecipeRankingTab";
 
 // 시간 변환 헬퍼 함수
 const formatTimeAgo = (dateString) => {
@@ -419,10 +420,10 @@ const Community = () => {
                                     전체 랭킹
                                 </TabsTrigger>
                                 <TabsTrigger
-                                    value="challenge"
+                                    value="recipe-ranking"
                                     className="[font-family:'Nunito',Helvetica] font-medium text-[#00a63e] text-sm rounded-[14px] data-[state=active]:bg-white"
                                 >
-                                    피드 랭킹
+                                    레시피 랭킹
                                 </TabsTrigger>
                             </TabsList>
 
@@ -451,8 +452,8 @@ const Community = () => {
                                 />
                             </TabsContent>
 
-                            <TabsContent value="challenge">
-                                <ChallengeTab feedPosts={feedPosts} />
+                            <TabsContent value="recipe-ranking">
+                                <RecipeRankingTab />
                             </TabsContent>
                         </Tabs>
                     </div>
