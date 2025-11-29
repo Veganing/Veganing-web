@@ -24,6 +24,31 @@ function ProductDetail() {
     // 팝업 표시 여부
     const [showPopup, setShowPopup] = useState(false);
 
+    const handleBuyNow = () => {
+        if (!product) return;
+
+        const totalPrice = product.price * quantity;
+        const shippingFee = totalPrice >= 30000 ? 0 : 3000;   // 과제용: 3만원 이상 무료, 아니면 3,000원
+        const finalAmount = totalPrice + shippingFee;
+
+        navigate("/order", {
+            state: {
+                items: [
+                    {
+                        id: product.id,
+                        name: product.name,
+                        image: product.image,
+                        price: product.price,
+                        quantity: quantity
+                    }
+                ],
+                totalPrice,
+                shippingFee,
+                finalAmount
+            }
+        });
+    };
+    
     if (!product) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
@@ -146,9 +171,7 @@ function ProductDetail() {
                                     <Button
                                         className="flex-1 h-12 rounded-2xl border-2 border-teal-200 text-teal-700 bg-white"
                                         variant="outline"
-                                        onClick={() =>
-                                            alert("바로구매 더미 동작")
-                                        }
+                                        onClick={handleBuyNow}
                                     >
                                         바로 구매
                                     </Button>
@@ -171,7 +194,10 @@ function ProductDetail() {
                         <div className="flex justify-center gap-3">
                             <button
                                 className="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700"
-                                onClick={() => setShowPopup(false)} // 아니요
+                                onClick={() => {
+                                    setShowPopup(false)
+                                    navigate("/store");
+                                }} // 아니요
                             >
                                 아니요
                             </button>

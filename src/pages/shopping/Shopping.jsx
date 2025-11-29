@@ -34,21 +34,33 @@ function Shopping() {
 
     const pageSize = 8;
 
-    const { pageProducts, hasMore, totalCount } = useMemo(() => {
+            const { pageProducts, hasMore, totalCount } = useMemo(() => {
+        const keyword = searchKeyword.trim().toLowerCase();
 
-        // 1) 카테고리 필터
-        const filteredByCategory = PRODUCTS.filter((p) => {
-            if (category === "ALL") return true;
-            return p.category === category;
-        });
+        // 1) 기준 리스트 결정
+        //    - 검색어가 없으면: 탭에 맞게 카테고리 필터 적용
+        //    - 검색어가 있으면: 전체 PRODUCTS 대상으로 검색 (카테고리 무시)
+        let baseList = PRODUCTS;
+
+        if (keyword === "") {   // ⭐ 검색어 없을 때만 카테고리 필터
+            baseList = PRODUCTS.filter((p) => {
+                if (category === "ALL") return true;
+                return p.mainCategory === category;   // FOOD / BOOK / COSMETIC / SUPPLEMENT
+            });
+        }
 
         // 2) 검색어 필터
-        const keyword = searchKeyword.trim().toLowerCase();
-        const filteredByKeyword = filteredByCategory.filter((p) => {
-            if (keyword === "") return true;
+        const filteredByKeyword = baseList.filter((p) => {
+            if (keyword === "") return true;  // ⭐ 검색어 없으면 그대로 통과
+
+            const name = (p.name || "").toLowerCase();
+            const desc = (p.description || "").toLowerCase();
+            const cat = (p.category || "").toLowerCase();   // "건강식품", "영양제" 등
+
             return (
-                p.name.toLowerCase().includes(keyword) ||
-                p.title.toLowerCase().includes(keyword)
+                name.includes(keyword) ||
+                desc.includes(keyword) ||
+                cat.includes(keyword)
             );
         });
 
@@ -76,8 +88,9 @@ function Shopping() {
             hasMore: hasMoreLocal,
             totalCount: total
         };
-
     }, [category, searchKeyword, sortOrder, currentPage]);
+
+
 
     // 핸들러들
     const handleSearch = (keyword) => {
