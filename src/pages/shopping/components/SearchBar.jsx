@@ -40,6 +40,7 @@ function SearchBar({ onSearch, sortOrder, onSortChange, resetTrigger, category }
 
             {!isBookCategory && !isRestaurantCategory && (
                 <div className="flex gap-2">
+                    {/*
                     <button
                         onClick={() => onSortChange('sim')}
                         className={`px-4 py-2 rounded-xl text-sm font-normal font-['Inter'] leading-tight transition-colors ${
@@ -59,11 +60,11 @@ function SearchBar({ onSearch, sortOrder, onSortChange, resetTrigger, category }
                         }`}
                     >
                         최신순
-                    </button>
+                    </button>*/}
                     <button
-                        onClick={() => onSortChange('asc')}
+                        onClick={() => onSortChange('price_asc')}
                         className={`px-4 py-2 rounded-xl text-sm font-normal font-['Inter'] leading-tight transition-colors ${
-                            sortOrder === 'asc'
+                            sortOrder === 'price_asc'
                                 ? 'bg-emerald-500 text-white'
                                 : 'bg-gray-100 text-neutral-950 hover:bg-gray-200'
                         }`}
@@ -71,9 +72,9 @@ function SearchBar({ onSearch, sortOrder, onSortChange, resetTrigger, category }
                         낮은 가격순
                     </button>
                     <button
-                        onClick={() => onSortChange('dsc')}
+                        onClick={() => onSortChange('price_desc')}
                         className={`px-4 py-2 rounded-xl text-sm font-normal font-['Inter'] leading-tight transition-colors ${
-                            sortOrder === 'dsc'
+                            sortOrder === 'price_desc'
                                 ? 'bg-emerald-500 text-white'
                                 : 'bg-gray-100 text-neutral-950 hover:bg-gray-200'
                         }`}

@@ -8,22 +8,22 @@ import pill from "../../../assets/shopping/pill.svg"
 function CategoryTabs({ selectedCategory, onCategoryChange }) {
     const categories = [
         { 
-            id: 'food', 
+            id: 'FOOD', 
             label: '식품', 
             icon: cart 
         },
         { 
-            id: 'book', 
+            id: 'BOOK', 
             label: '도서', 
             icon: book
         },
         { 
-            id: 'cosmetic', 
+            id: 'COSMETIC', 
             label: '화장품', 
             icon: cosmetic 
         },
         { 
-            id: 'supplement', 
+            id: 'SUPPLEMENT', 
             label: '영양제', 
             icon: pill
         }
