@@ -3,6 +3,38 @@ import { recommendMealRecipe } from '../../../../api/openai';
 
 const STORAGE_KEY = 'challenge_meal_index_state';
 
+// 더미 레시피 데이터 (퀴노아와 채소 볶음)
+const DUMMY_RECIPE = {
+    id: 'dummy-quinoa-stir-fry',
+    title: '퀴노아와 채소 볶음',
+    description: '퀴노아는 완전 단백질이 포함되어 있어 영양가가 높습니다. 다양한 채소와 함께 볶음 형태로 조리하여 비타민과 미네랄을 손쉽게 섭취할 수 있는 방법입니다.',
+    cookingTime: 20,
+    difficulty: '보통',
+    servings: 1,
+    ingredients: [
+        '퀴노아 1컵 (조리된 것)',
+        '브로콜리 1컵 (잘라서)',
+        '당근 1개 (얇게 썬 것)',
+        '파프리카 1개 (채썬 것)',
+        '올리브 오일 1큰술',
+        '간장 1큰술',
+        '생강가루 약간'
+    ],
+    nutrition: {
+        calories: 250,
+        carbohydrates: 30,
+        protein: 15,
+        fat: 10,
+        fiber: 3,
+        sodium: 400
+    },
+    recommendReason: '퀴노아는 완전 단백질이 포함되어 있어 영양가가 높습니다.',
+    instructions: `1. 프라이팬에 올리브 오일을 두르고, 중불에서 당근, 브로콜리, 파프리카를 볶습니다.
+2. 채소가 부드러워질 때까지 볶다가, 조리된 퀴노아를 추가합니다.
+3. 간장과 생강가루를 넣고 잘 섞은 후 2~3분 더 볶아줍니다`,
+    isDummy: true
+};
+
 const RecipeTab = () => {
     const [recipes, setRecipes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -76,23 +108,23 @@ const RecipeTab = () => {
                 return;
             }
 
-            // 이미 저장된 추천 레시피가 있으면 그것을 사용
-            const recommendedRecipes = [];
+            // 더미 레시피를 항상 첫 번째에 추가
+            const recommendedRecipes = [DUMMY_RECIPE];
             
             for (const meal of meals) {
                 // 이미 추천 레시피가 저장되어 있으면 사용
                 if (meal.recommendedRecipe) {
-                    // 3개의 레시피를 파싱
+                    // 2개의 레시피를 파싱 (최대 2개만)
                     const parsedRecipes = parseMultipleRecipes(meal.recommendedRecipe, meal.analysis);
-                    recommendedRecipes.push(...parsedRecipes);
+                    recommendedRecipes.push(...parsedRecipes.slice(0, 2)); // 최대 2개만 추가
                 } else if (meal.analysis) {
                     // 추천 레시피가 없으면 새로 생성
                     try {
                         const recipeText = await recommendMealRecipe(meal.analysis);
                         if (recipeText) {
-                            // 3개의 레시피를 파싱
+                            // 2개의 레시피를 파싱 (최대 2개만)
                             const parsedRecipes = parseMultipleRecipes(recipeText, meal.analysis);
-                            recommendedRecipes.push(...parsedRecipes);
+                            recommendedRecipes.push(...parsedRecipes.slice(0, 2)); // 최대 2개만 추가
                         }
                     } catch (error) {
                         console.error('레시피 추천 실패:', error);
@@ -109,7 +141,7 @@ const RecipeTab = () => {
         }
     };
 
-    // 여러 레시피를 파싱하는 함수 (3개 추출)
+    // 여러 레시피를 파싱하는 함수 (2개 추출)
     const parseMultipleRecipes = (recipeText, analysisResult) => {
         if (!recipeText) return [];
         
@@ -118,8 +150,8 @@ const RecipeTab = () => {
         // 레시피를 구분자로 분리
         const recipeSections = recipeText.split(/---레시피 \d+---/).filter(section => section.trim());
         
-        // 각 레시피 섹션을 파싱
-        for (const section of recipeSections) {
+        // 각 레시피 섹션을 파싱 (최대 2개만)
+        for (const section of recipeSections.slice(0, 2)) {
             const parsed = parseRecommendedRecipe(section.trim(), analysisResult);
             if (parsed) {
                 recipes.push(parsed);
@@ -233,17 +265,8 @@ const RecipeTab = () => {
                         <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
                         <p className="text-gray-600">AI가 레시피를 추천하고 있습니다...</p>
                     </div>
-                ) : recipes.length === 0 ? (
-                    <div className="bg-white rounded-lg shadow p-12 text-center">
-                        <p className="text-gray-600 mb-4">저장된 식단이 없습니다.</p>
-                        <p className="text-sm text-gray-500 mb-4">식단을 분석하고 저장하면 추천 레시피가 표시됩니다.</p>
-                        <div className="text-sm text-gray-500">
-                            <p>💡 팁: "오늘의 식단" 탭에서 식단을 분석한 후</p>
-                            <p>"식단 저장" 버튼을 눌러 저장하세요!</p>
-                        </div>
-                    </div>
                 ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {recipes.map((recipe) => (
                         <div 
                             key={recipe.id} 

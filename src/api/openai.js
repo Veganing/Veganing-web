@@ -66,18 +66,18 @@ export function fileToDataUrl(file) {
     });
 }
 
-// 식단 추천 함수 (3개의 레시피 추천)
+// 식단 추천 함수 (2개의 레시피 추천)
 export async function recommendMealRecipe(analysisResult) {
     const systemPrompt = `
 당신은 비건 식단 전문 영양사입니다. 
-분석된 식단을 기반으로 더 건강하고 비건 친화적인 식단을 3개 추천해주세요.
+분석된 식단을 기반으로 더 건강하고 비건 친화적인 식단을 2개 추천해주세요.
 
 **추천 원칙:**
 1. 현재 식단의 영양 성분을 고려하여 부족한 영양소를 보완할 수 있는 식단 추천
 2. 비건 친화적인 재료 사용
 3. 간단하고 실용적인 레시피
 4. 탄소발자국이 낮은 식재료 선호
-5. 3개의 레시피는 서로 다른 특징을 가져야 함 (예: 다른 주재료, 다른 조리법 등)
+5. 2개의 레시피는 서로 다른 특징을 가져야 함 (예: 다른 주재료, 다른 조리법 등)
 
 **응답 형식 (각 레시피마다 반복):**
 ---레시피 1---
@@ -99,9 +99,6 @@ export async function recommendMealRecipe(analysisResult) {
 
 ---레시피 2---
 [동일한 형식]
-
----레시피 3---
-[동일한 형식]
 `.trim();
 
     const userPrompt = `
@@ -109,9 +106,9 @@ export async function recommendMealRecipe(analysisResult) {
 
 ${analysisResult}
 
-이 식단을 기반으로 건강하고 비건 친화적인 대체 식단을 3개 추천해주세요.
+이 식단을 기반으로 건강하고 비건 친화적인 대체 식단을 2개 추천해주세요.
 각 레시피는 서로 다른 특징을 가져야 합니다.
-위 형식에 맞춰 3개의 레시피를 모두 응답해주세요.
+위 형식에 맞춰 2개의 레시피를 모두 응답해주세요.
 `.trim();
 
     try {

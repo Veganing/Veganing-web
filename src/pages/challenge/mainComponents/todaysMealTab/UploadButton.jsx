@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import EnvImpactPopup from './EnvimpactPopup';
-import { calculateCarbonFootprint } from '../../../../api/openai';
+import { calculateCarbonFootprint, recommendMealRecipe } from '../../../../api/openai';
 import { addPoints, getToken } from '../../../../api/backend';
 
 function UploadButton({ mealsCount, onSaveComplete }) {
@@ -25,6 +25,40 @@ function UploadButton({ mealsCount, onSaveComplete }) {
             setIsCalculating(true);
             
             try {
+                // 각 식단에 대해 추천 레시피 생성
+                console.log("🍽️ 추천 레시피 생성 시작...");
+                const mealsWithRecipes = await Promise.all(
+                    meals.map(async (meal) => {
+                        // 이미 추천 레시피가 있으면 그대로 사용
+                        if (meal.recommendedRecipe) {
+                            return meal;
+                        }
+                        
+                        // 분석 결과가 있으면 추천 레시피 생성
+                        if (meal.analysis) {
+                            try {
+                                const recipe = await recommendMealRecipe(meal.analysis);
+                                if (recipe) {
+                                    console.log(`✅ 식단 ${meal.id}에 대한 추천 레시피 생성 완료`);
+                                    return { ...meal, recommendedRecipe: recipe };
+                                }
+                            } catch (error) {
+                                console.error(`식단 ${meal.id}의 추천 레시피 생성 실패:`, error);
+                            }
+                        }
+                        return meal;
+                    })
+                );
+                
+                // 추천 레시피가 포함된 식단들을 localStorage에 저장
+                try {
+                    const STORAGE_KEY = 'challenge_meal_index_state';
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(mealsWithRecipes));
+                    console.log("✅ 추천 레시피와 함께 식단 저장 완료");
+                } catch (error) {
+                    console.error('localStorage 저장 실패:', error);
+                }
+                
                 // LLM으로 탄소발자국 계산
                 const calculatedData = await calculateCarbonFootprint(meals);
                 
