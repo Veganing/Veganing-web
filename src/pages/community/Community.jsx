@@ -370,6 +370,7 @@ const Community = () => {
 
     return (
         <main className="flex-1 relative">
+            <div className="bg-white w-full flex flex-col animate-fadeIn">
             <section className="container mx-auto px-4 py-16 relative">
                 <div className="flex flex-col items-center gap-12 max-w-7xl mx-auto">
                     <div className="flex flex-col items-center gap-6 text-center translate-y-[-1rem] animate-fade-in opacity-0 [--animation-delay:200ms]">
@@ -457,6 +458,7 @@ const Community = () => {
                     </div>
                 </div>
             </section>
+            </div>
         </main>
     );
 };

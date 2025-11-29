@@ -23,7 +23,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
             }
         }
     }, [resetTrigger, setCurrentImage, setCurrentDescription]);
-    
+
     // imageUrl이 변경되면 이미지 설정
     useEffect(() => {
         if (imageUrl && imageUrl.trim()) {
@@ -58,20 +58,20 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
 
         setImageLoading(true);
         setSelectedFile(file);
-        
+
         // 미리보기 생성 (커뮤니티처럼)
         const reader = new FileReader();
         reader.onloadend = () => {
             const dataUrl = reader.result;
             console.log("✅ 이미지 로드 성공!");
-            
+
             setSelectedImage(dataUrl);
             setCurrentImage(dataUrl);
             setImageLoading(false);
-            
+
             console.log("✅✅✅ 상태 업데이트 완료 - 이미지가 화면에 표시되어야 합니다 ✅✅✅");
         };
-        
+
         reader.onerror = () => {
             console.error("❌ FileReader 에러");
             alert("이미지 파일을 불러올 수 없습니다.");
@@ -81,7 +81,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
             setCurrentImage(null);
             e.target.value = '';
         };
-        
+
         reader.readAsDataURL(file);
     };
 
