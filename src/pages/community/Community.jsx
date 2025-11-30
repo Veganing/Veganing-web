@@ -235,7 +235,7 @@ const Community = () => {
                     const profileResponse = await getMyProfile(token);
                     console.log("🔍 프로필 응답 전체:", JSON.stringify(profileResponse, null, 2));
                     console.log("🔍 profileResponse.user:", profileResponse?.user);
-                    
+
                     if (profileResponse && profileResponse.user) {
                         const user = profileResponse.user;
                         console.log("✅ 사용자 데이터:", user);
@@ -253,7 +253,7 @@ const Community = () => {
                 } catch (error) {
                     console.error("❌ 프로필 조회 실패:");
                     console.error("에러 메시지:", error.message);
-                    
+
                     // 토큰 만료 체크
                     if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
                         console.warn("⚠️ 토큰이 만료되었습니다. 자동 로그아웃합니다.");
@@ -266,7 +266,7 @@ const Community = () => {
                         navigate("/login");
                         return;
                     }
-                    
+
                     // 프로필 로딩 실패해도 로그인 상태는 유지 (토큰이 있으므로)
                 }
 
@@ -360,9 +360,9 @@ const Community = () => {
 
     // 게시글 업데이트 핸들러 (좋아요 등)
     const handlePostUpdate = (postId, updates) => {
-        setFeedPosts(prevPosts => 
-            prevPosts.map(post => 
-                post.id === postId 
+        setFeedPosts(prevPosts =>
+            prevPosts.map(post =>
+                post.id === postId
                     ? { ...post, ...updates }
                     : post
             )
@@ -372,93 +372,94 @@ const Community = () => {
     return (
         <main className="flex-1 relative">
             <div className="bg-white w-full flex flex-col animate-fadeIn">
-            <section className="container mx-auto px-4 py-16 relative">
-                <div className="flex flex-col items-center gap-12 max-w-7xl mx-auto">
-                    <div className="flex flex-col items-center gap-6 text-center translate-y-[-1rem] animate-fade-in opacity-0 [--animation-delay:200ms]">
-                        <h1 className="[font-family:'Nunito',Helvetica] font-normal text-white text-6xl tracking-[0] leading-[60px]">
-                            비건 커뮤니티
-                        </h1>
-                        <p className="[font-family:'Nunito',Helvetica] font-normal text-[#fffefee6] text-xl tracking-[0] leading-7 max-w-2xl">
-                            함께하는 비건 여정, 서로의 경험을 나누고 응원해보세요
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full ">
-                        {statsData.map((stat, index) => (
-                            <Card
-                                key={index}
-                                className="bg-[#fffffff2] border-[0.67px] border-[#0000001a] rounded-[14px] transition-transform hover:scale-105"
-                            >
-                                <CardContent className="flex flex-col items-center gap-2 p-6">
-                                    <img className="w-8 h-8" alt="Icon" src={stat.icon} />
-                                    <div
-                                        className={`[font-family:'Nunito',Helvetica] font-normal ${stat.color} text-2xl text-center tracking-[0] leading-8`}
-                                    >
-                                        {stat.value}
-                                    </div>
-                                    <div className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
-                                        {stat.label}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-
-                    <div className="flex flex-col gap-8 w-full ">
-                        <Tabs defaultValue="ranking" className="w-full">
-                            <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto bg-[#ffffffe6] rounded-[14px] p-1">
-                                <TabsTrigger
-                                    value="feed"
-                                    className="[font-family:'Nunito',Helvetica] font-medium text-[#00a63e] text-sm rounded-[14px] data-[state=active]:bg-white"
-                                >
-                                    피드
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="ranking"
-                                    className="[font-family:'Nunito',Helvetica] font-medium text-[#00a63e] text-sm rounded-[14px] data-[state=active]:bg-white"
-                                >
-                                    전체 랭킹
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="recipe-ranking"
-                                    className="[font-family:'Nunito',Helvetica] font-medium text-[#00a63e] text-sm rounded-[14px] data-[state=active]:bg-white"
-                                >
-                                    레시피 랭킹
-                                </TabsTrigger>
-                            </TabsList>
-
-                            <TabsContent value="ranking" className="mt-8">
-                                <RankingTab
-                                    rankingData={rankingData}
-                                    profileLoading={profileLoading}
-                                    isLoggedIn={isLoggedIn}
-                                    userProfile={userProfile}
-                                    userStats={userStats}
-                                    userBadgesData={userBadgesData}
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="feed">
-                                <FeedTab
-                                    feedPosts={feedPosts}
-                                    feedLoading={feedLoading}
-                                    challengeLoading={challengeLoading}
-                                    isLoggedIn={isLoggedIn}
-                                    currentChallenge={currentChallenge}
-                                    goToChallenge={goToChallenge}
-                                    popularHashtags={popularHashtags}
-                                    onCreatePost={goToCreatePost}
-                                    onPostUpdate={handlePostUpdate}
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="recipe-ranking">
-                                <RecipeRankingTab />
-                            </TabsContent>
-                        </Tabs>
-                    </div>
+                {/* Hero Section */}
+                <div className="w-full text-center space-y-6 mb-16 mt-40">
+                    <h1 className="text-6xl font-normal font-['Inter'] leading-[60px] tracking-tight text-primary-dark">
+                        비건 커뮤니티
+                    </h1>
+                    <p className="text-xl font-normal font-['Inter'] leading-7 text-gray-700">
+                        함께하는 비건 여정, 서로의 경험을 나누고 응원해보세요
+                    </p>
                 </div>
-            </section>
+                <section className="container mx-auto px-4 py-16 relative">
+                    <div className="flex flex-col items-center gap-12 max-w-7xl mx-auto">
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full ">
+                            {statsData.map((stat, index) => (
+                                <Card
+                                    key={index}
+                                    className="bg-[#fffffff2] border-[0.67px] border-[#0000001a] rounded-[14px] transition-transform hover:scale-105"
+                                >
+                                    <CardContent className="flex flex-col items-center gap-2 p-6">
+                                        <img className="w-8 h-8" alt="Icon" src={stat.icon} />
+                                        <div
+                                            className={`[font-family:'Nunito',Helvetica] font-normal ${stat.color} text-2xl text-center tracking-[0] leading-8`}
+                                        >
+                                            {stat.value}
+                                        </div>
+                                        <div className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm text-center tracking-[0] leading-5">
+                                            {stat.label}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col gap-8 w-full ">
+                            <Tabs defaultValue="ranking" className="w-full">
+                                <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto bg-[#ffffffe6] rounded-[14px] p-1">
+                                    <TabsTrigger
+                                        value="feed"
+                                        className="[font-family:'Nunito',Helvetica] font-medium text-[#00a63e] text-sm rounded-[14px] data-[state=active]:bg-white"
+                                    >
+                                        피드
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="ranking"
+                                        className="[font-family:'Nunito',Helvetica] font-medium text-[#00a63e] text-sm rounded-[14px] data-[state=active]:bg-white"
+                                    >
+                                        전체 랭킹
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="recipe-ranking"
+                                        className="[font-family:'Nunito',Helvetica] font-medium text-[#00a63e] text-sm rounded-[14px] data-[state=active]:bg-white"
+                                    >
+                                        레시피 랭킹
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="ranking" className="mt-8">
+                                    <RankingTab
+                                        rankingData={rankingData}
+                                        profileLoading={profileLoading}
+                                        isLoggedIn={isLoggedIn}
+                                        userProfile={userProfile}
+                                        userStats={userStats}
+                                        userBadgesData={userBadgesData}
+                                    />
+                                </TabsContent>
+
+                                <TabsContent value="feed">
+                                    <FeedTab
+                                        feedPosts={feedPosts}
+                                        feedLoading={feedLoading}
+                                        challengeLoading={challengeLoading}
+                                        isLoggedIn={isLoggedIn}
+                                        currentChallenge={currentChallenge}
+                                        goToChallenge={goToChallenge}
+                                        popularHashtags={popularHashtags}
+                                        onCreatePost={goToCreatePost}
+                                        onPostUpdate={handlePostUpdate}
+                                    />
+                                </TabsContent>
+
+                                <TabsContent value="recipe-ranking">
+                                    <RecipeRankingTab />
+                                </TabsContent>
+                            </Tabs>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     );
