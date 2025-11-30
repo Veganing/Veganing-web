@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const STORAGE_KEY = 'challenge_meal_index_state';
 
 const ShoppingTab = () => {
+    const navigate = useNavigate();
     const [requiredIngredients, setRequiredIngredients] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -20,6 +22,22 @@ const ShoppingTab = () => {
             console.error('localStorage에서 식단 가져오기 실패:', error);
         }
         return [];
+    };
+
+    // 더미 레시피 데이터 (퀴노아와 채소 볶음)
+    const DUMMY_RECIPE = {
+        id: 'dummy-quinoa-stir-fry',
+        title: '퀴노아와 채소 볶음',
+        ingredients: [
+            { name: '퀴노아', amount: '1컵', unit: '(조리된 것)' },
+            { name: '브로콜리', amount: '1컵', unit: '(잘라서)' },
+            { name: '당근', amount: '1개', unit: '(얇게 썬 것)' },
+            { name: '파프리카', amount: '1개', unit: '(채썬 것)' },
+            { name: '올리브 오일', amount: '1큰술', unit: '' },
+            { name: '간장', amount: '1큰술', unit: '' },
+            { name: '생강가루', amount: '약간', unit: '' }
+        ],
+        recommendReason: '퀴노아는 완전 단백질이 포함되어 있어 영양가가 높습니다.'
     };
 
     // 저장된 식단에서 식재료 추출
@@ -62,13 +80,40 @@ const ShoppingTab = () => {
             
             // 모든 식단의 식재료 수집
             const ingredientMap = new Map();
+            const dummyIngredientIds = new Set(); // 더미 레시피 식재료 ID 추적
+            
+            // 더미 레시피의 식재료를 항상 첫 번째로 추가 (우선순위 높음)
+            if (DUMMY_RECIPE.ingredients) {
+                let dummyId = 1;
+                for (const ing of DUMMY_RECIPE.ingredients) {
+                    const key = ing.name.toLowerCase().trim();
+                    const fullName = ing.name;
+                    const amountText = `${ing.amount} ${ing.unit}`.trim();
+                    
+                    // 더미 레시피 식재료는 항상 추가 (중복이어도 덮어쓰기)
+                    ingredientMap.set(key, {
+                        id: dummyId++,
+                        name: fullName,
+                        amount: amountText,
+                        reason: '추천 레시피',
+                        priority: '높음',
+                        isDummy: true // 더미 레시피 식재료 표시
+                    });
+                    dummyIngredientIds.add(key);
+                }
+            }
             
             for (const meal of allMeals) {
                 // ingredients 배열이 있으면 사용
                 if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
                     for (const ing of meal.ingredients) {
-                        const key = ing.name?.toLowerCase().trim() || ing.toLowerCase().trim();
+                        const key = (ing.name?.toLowerCase().trim() || ing.toLowerCase().trim()).split(/\s+/)[0];
                         const existing = ingredientMap.get(key);
+                        
+                        // 더미 레시피 식재료가 이미 있으면 건너뛰기 (더미가 우선)
+                        if (dummyIngredientIds.has(key)) {
+                            continue;
+                        }
                         
                         if (existing) {
                             // 이미 존재하면 양 합치기
@@ -84,24 +129,75 @@ const ShoppingTab = () => {
                         }
                     }
                 } else if (meal.recommendedRecipe) {
-                    // recommendedRecipe에서 식재료 추출 시도
-                    const ingredientsMatch = meal.recommendedRecipe.match(/📋\s*\*\*필요한 식재료\*\*\s*\n([\s\S]*?)(?=👨‍🍳|💡|---|$)/);
-                    if (ingredientsMatch) {
-                        const ingredientsText = ingredientsMatch[1].trim();
-                        const ingredientLines = ingredientsText.split('\n').filter(line => line.trim());
-                        
-                        for (const line of ingredientLines) {
-                            const cleaned = line.replace(/^[-•\s*]/, '').trim();
-                            if (cleaned) {
-                                const key = cleaned.toLowerCase();
-                                if (!ingredientMap.has(key)) {
-                                    ingredientMap.set(key, {
-                                        id: ingredientMap.size + 1,
-                                        name: cleaned.split(/\s+/)[0] || cleaned,
-                                        amount: cleaned.replace(/^\S+\s*/, '').trim() || '필요량 확인',
-                                        reason: meal.recommendReason || '추천 식단',
-                                        priority: '보통'
-                                    });
+                    // recommendedRecipe에서 식재료 추출 시도 (여러 레시피 지원)
+                    const recipeSections = meal.recommendedRecipe.split(/---레시피 \d+---/).filter(section => section.trim());
+                    
+                    // 레시피 섹션이 있으면 각 섹션에서 식재료 추출
+                    if (recipeSections.length > 0) {
+                        for (const section of recipeSections) {
+                            const ingredientsMatch = section.match(/📋\s*\*\*필요한 식재료\*\*\s*\n([\s\S]*?)(?=👨‍🍳|💡|---|$)/);
+                            if (ingredientsMatch) {
+                                const ingredientsText = ingredientsMatch[1].trim();
+                                const ingredientLines = ingredientsText.split('\n').filter(line => line.trim());
+                                
+                                for (const line of ingredientLines) {
+                                    const cleaned = line.replace(/^[-•\s*]/, '').trim();
+                                    if (cleaned) {
+                                        const key = cleaned.toLowerCase().split(/\s+/)[0]; // 첫 단어만 키로 사용
+                                        
+                                        // 더미 레시피 식재료가 이미 있으면 건너뛰기 (더미가 우선)
+                                        if (dummyIngredientIds.has(key)) {
+                                            continue;
+                                        }
+                                        
+                                        const existing = ingredientMap.get(key);
+                                        
+                                        if (existing) {
+                                            // 이미 존재하면 양 합치기
+                                            existing.amount = `${existing.amount} + ${cleaned.replace(/^\S+\s*/, '').trim() || '필요량 확인'}`;
+                                        } else {
+                                            ingredientMap.set(key, {
+                                                id: ingredientMap.size + 1,
+                                                name: cleaned.split(/\s+/)[0] || cleaned,
+                                                amount: cleaned.replace(/^\S+\s*/, '').trim() || '필요량 확인',
+                                                reason: meal.recommendReason || '추천 식단',
+                                                priority: '보통'
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // 구분자가 없으면 전체 텍스트에서 식재료 추출 시도
+                        const ingredientsMatch = meal.recommendedRecipe.match(/📋\s*\*\*필요한 식재료\*\*\s*\n([\s\S]*?)(?=👨‍🍳|💡|---|$)/);
+                        if (ingredientsMatch) {
+                            const ingredientsText = ingredientsMatch[1].trim();
+                            const ingredientLines = ingredientsText.split('\n').filter(line => line.trim());
+                            
+                            for (const line of ingredientLines) {
+                                const cleaned = line.replace(/^[-•\s*]/, '').trim();
+                                if (cleaned) {
+                                    const key = cleaned.toLowerCase().split(/\s+/)[0];
+                                    
+                                    // 더미 레시피 식재료가 이미 있으면 건너뛰기 (더미가 우선)
+                                    if (dummyIngredientIds.has(key)) {
+                                        continue;
+                                    }
+                                    
+                                    const existing = ingredientMap.get(key);
+                                    
+                                    if (existing) {
+                                        existing.amount = `${existing.amount} + ${cleaned.replace(/^\S+\s*/, '').trim() || '필요량 확인'}`;
+                                    } else {
+                                        ingredientMap.set(key, {
+                                            id: ingredientMap.size + 1,
+                                            name: cleaned.split(/\s+/)[0] || cleaned,
+                                            amount: cleaned.replace(/^\S+\s*/, '').trim() || '필요량 확인',
+                                            reason: meal.recommendReason || '추천 식단',
+                                            priority: '보통'
+                                        });
+                                    }
                                 }
                             }
                         }
@@ -109,9 +205,19 @@ const ShoppingTab = () => {
                 }
             }
             
+            // 더미 레시피 식재료를 먼저 정렬하고, 나머지를 뒤에 추가
             const ingredients = Array.from(ingredientMap.values());
-            console.log('🔵 ShoppingTab - 추출된 식재료 개수:', ingredients.length);
-            setRequiredIngredients(ingredients);
+            const sortedIngredients = ingredients.sort((a, b) => {
+                // 더미 레시피 식재료를 우선 정렬
+                if (a.isDummy && !b.isDummy) return -1;
+                if (!a.isDummy && b.isDummy) return 1;
+                // 둘 다 더미이거나 둘 다 아니면 원래 순서 유지
+                return a.id - b.id;
+            });
+            
+            console.log('🔵 ShoppingTab - 추출된 식재료 개수:', sortedIngredients.length);
+            console.log('🔵 ShoppingTab - 더미 레시피 식재료:', sortedIngredients.filter(ing => ing.isDummy).map(ing => ing.name));
+            setRequiredIngredients(sortedIngredients);
         } catch (error) {
             console.error('식재료 로드 실패:', error);
             setRequiredIngredients([]);
@@ -125,9 +231,9 @@ const ShoppingTab = () => {
         setSelectedIngredient(ingredient);
     };
 
-    // 네이버 쇼핑 직접 링크 생성
-    const getNaverShoppingLink = (ingredientName) => {
-        return `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(ingredientName)}`;
+    // 사이트 내 쇼핑몰로 이동
+    const handleGoToShopping = (ingredientName) => {
+        navigate(`/store?search=${encodeURIComponent(ingredientName)}`);
     };
 
     return (
@@ -220,19 +326,17 @@ const ShoppingTab = () => {
                                         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
                                             <h3 className="text-lg font-semibold text-gray-800 mb-4">구매하기</h3>
                                             <p className="text-sm text-gray-600 mb-4">
-                                                {selectedIngredient.name}을(를) 네이버 쇼핑에서 검색해보세요.
+                                                {selectedIngredient.name}을(를) 쇼핑몰에서 검색해보세요.
                                             </p>
-                                            <a
-                                                href={getNaverShoppingLink(selectedIngredient.name)}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+                                            <button
+                                                onClick={() => handleGoToShopping(selectedIngredient.name)}
                                                 className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-md hover:shadow-lg"
                                             >
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                                 </svg>
-                                                네이버 쇼핑에서 검색하기
-                                            </a>
+                                                쇼핑몰에서 검색하기
+                                            </button>
                                         </div>
 
                                         {/* 식재료 정보 */}

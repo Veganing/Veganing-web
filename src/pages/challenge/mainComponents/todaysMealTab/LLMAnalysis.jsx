@@ -1,6 +1,27 @@
 import { useState, useEffect } from 'react';
 import { recommendMealRecipe, extractIngredients, calculateSingleMealCarbonFootprint } from '../../../../api/openai';
 
+// 더미 레시피 데이터 (퀴노아와 채소 볶음)
+const DUMMY_RECIPE_TEXT = `🍽️ **추천 식단명**
+퀴노아와 채소 볶음
+
+📋 **필요한 식재료**
+- 퀴노아 1컵 (조리된 것)
+- 브로콜리 1컵 (잘라서)
+- 당근 1개 (얇게 썬 것)
+- 파프리카 1개 (채썬 것)
+- 올리브 오일 1큰술
+- 간장 1큰술
+- 생강가루 약간
+
+👨‍🍳 **간단한 조리법**
+1. 프라이팬에 올리브 오일을 두르고, 중불에서 당근, 브로콜리, 파프리카를 볶습니다.
+2. 채소가 부드러워질 때까지 볶다가, 조리된 퀴노아를 추가합니다.
+3. 간장과 생강가루를 넣고 잘 섞은 후 2~3분 더 볶아줍니다
+
+💡 **추천 이유**
+퀴노아는 완전 단백질이 포함되어 있어 영양가가 높습니다. 다양한 채소와 함께 볶음 형태로 조리하여 비타민과 미네랄을 손쉽게 섭취할 수 있는 방법입니다.`;
+
 function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, onUploadComplete }) {
     const [recommendedRecipe, setRecommendedRecipe] = useState(null);
     const [ingredients, setIngredients] = useState([]);
@@ -21,9 +42,10 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
         }
     }, [output]);
 
-    // 분석 결과가 나오면 자동으로 추천 → 식재료 추출 → 탄소발자국 계산
+    // 분석 결과가 나오면 더미 레시피를 먼저 표시하고, 실제 AI 추천도 받아오기
     useEffect(() => {
         if (output && !isAnalyzing && !recommendedRecipe && !isRecommending) {
+            // 실제 AI 추천을 받아오기 (더미 레시피 포함)
             handleAutoRecommend();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -33,15 +55,17 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
         if (!output) return;
 
         try {
-            // 1. 식단 추천
+            // 1. 식단 추천 (AI가 실제로 추천)
             setIsRecommending(true);
             console.log("🍽️ 식단 추천 시작...");
             const recipe = await recommendMealRecipe(output);
             if (recipe) {
-                setRecommendedRecipe(recipe);
+                // 더미 레시피와 AI 추천 레시피를 합쳐서 표시
+                const combinedRecipe = `${DUMMY_RECIPE_TEXT}\n\n---레시피 2---\n${recipe}`;
+                setRecommendedRecipe(combinedRecipe);
                 console.log("✅ 식단 추천 완료");
                 
-                // 2. 식재료 추출
+                // 2. 식재료 추출 (AI 추천 레시피에서만)
                 setIsExtracting(true);
                 console.log("📋 식재료 추출 시작...");
                 const extracted = await extractIngredients(recipe);
@@ -49,7 +73,7 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
                     setIngredients(extracted);
                     console.log("✅ 식재료 추출 완료:", extracted);
                     
-                    // 3. 탄소발자국 계산
+                    // 3. 탄소발자국 계산 (실제 계산)
                     setIsCalculating(true);
                     console.log("🌱 탄소발자국 계산 시작...");
                     const carbon = await calculateSingleMealCarbonFootprint(output, extracted);
@@ -90,13 +114,16 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
         }
 
         try {
+            // 업로드 버튼으로 저장할 때는 레시피 데이터를 저장하지 않음
+            // (더미 레시피가 포함되지 않도록 하기 위함)
+            // 단, 탄소발자국은 실제 계산된 값이 있으면 저장
             const mealData = {
                 image: currentImage,
                 description: currentDescription || '',
                 analysis: output,
-                recommendedRecipe: recommendedRecipe || null,
-                ingredients: ingredients || [],
-                carbonFootprint: carbonFootprint || null
+                recommendedRecipe: null, // 업로드 시에는 레시피 저장하지 않음
+                ingredients: null, // 업로드 시에는 식재료 저장하지 않음
+                carbonFootprint: carbonFootprint || null // 탄소발자국은 실제 계산된 값 저장
             };
             
             console.log("🔵 저장할 식단 데이터:", mealData);
@@ -344,7 +371,7 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
                         )}
 
                         {/* 추천 식단 */}
-                        {(isRecommending || recommendedRecipe) && (
+                        {recommendedRecipe && (
                             <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-200">
                                 <div className="flex items-center gap-2 mb-3">
                                     <span className="text-xl">🍽️</span>

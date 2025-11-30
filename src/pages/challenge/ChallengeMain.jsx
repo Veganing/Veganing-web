@@ -155,7 +155,7 @@ function ChallengeMain() {
     const progress = challengeData.progress || 0;
 
     return (
-        <div className="min-h-screen bg-white pt-[157px] pb-[80px]">
+        <div className="bg-white w-full flex flex-col animate-fadeIn min-h-screen pt-[157px] pb-[80px]">
             <div className="max-w-7xl mx-auto px-4 flex flex-col gap-8">
                 
                 {/* Challenge Hero */}

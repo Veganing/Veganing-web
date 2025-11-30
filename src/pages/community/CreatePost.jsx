@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/Card";
 import { Input } from "./components/ui/Input";
 import { Badge } from "./components/ui/Badge";
 import { ImageIcon, X, Hash, Upload } from "lucide-react";
-import { createPost, getToken } from "../../api/backend";
+import { createPost, getToken, removeToken } from "../../api/backend";
+import { clearAuth } from "../../hooks/auth";
 
 const CreatePost = () => {
     const navigate = useNavigate();
@@ -72,6 +73,12 @@ const CreatePost = () => {
                 return;
             }
 
+            console.log("🔵 게시글 작성 시작:", {
+                contentLength: content.trim().length,
+                category: category,
+                hasImage: !!imageUrl
+            });
+
             // 해시태그 파싱 (#으로 시작하는 것들 추출)
             const tagArray = hashtags
                 .split(/[\s,]+/)
@@ -85,8 +92,11 @@ const CreatePost = () => {
                 ...(imageUrl && { imageUrl: imageUrl.trim() }),
             };
 
+            console.log("🔵 게시글 데이터:", postData);
+            console.log("🔵 토큰 존재 여부:", token ? "있음" : "없음");
+
             const response = await createPost(postData, token);
-            console.log("게시글 작성 성공:", response);
+            console.log("✅ 게시글 작성 성공:", response);
             alert("게시글이 작성되었습니다!");
             // 커뮤니티 페이지로 이동하면서 리프레시 트리거
             navigate("/community", { replace: true });
@@ -94,8 +104,32 @@ const CreatePost = () => {
             window.location.reload();
         } catch (error) {
             console.error("게시글 작성 실패:", error);
+            console.error("에러 상세:", {
+                message: error.message,
+                status: error.status,
+                error: error.error,
+                details: error.details
+            });
+            
+            // 토큰 만료 처리
+            if (error.message.includes("Token expired") || error.status === 401) {
+                removeToken();
+                clearAuth();
+                alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+                navigate("/login");
+                return;
+            }
+            
             // 더 자세한 에러 메시지 표시
-            const errorMessage = error.message || "알 수 없는 오류가 발생했습니다.";
+            let errorMessage = error.message || "알 수 없는 오류가 발생했습니다.";
+            
+            // 백엔드에서 반환한 에러 메시지가 있으면 사용
+            if (error.error) {
+                errorMessage = error.error;
+            } else if (error.details) {
+                errorMessage = error.details;
+            }
+            
             alert(`게시글 작성에 실패했습니다.\n\n오류: ${errorMessage}\n\n원인:\n- 로그인이 필요할 수 있습니다.\n- 백엔드 서버가 실행 중인지 확인해주세요.\n- 브라우저 콘솔(F12)에서 자세한 에러를 확인할 수 있습니다.`);
         } finally {
             setIsLoading(false);
