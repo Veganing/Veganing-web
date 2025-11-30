@@ -4,6 +4,9 @@ import { Card, CardContent } from "./components/ui/Card";
 import { Avatar, AvatarFallback } from "./components/ui/Avatar";
 import { MapPinIcon, HeartIcon, MessageCircleIcon } from "lucide-react";
 import { Button } from "./components/ui/Button";
+import quinoaSaladImage from "../../assets/community/quinoa_salad.jpg";
+import dubuScrambleImage from "../../assets/community/dubu_scramble.jpg";
+import rentilCarreImage from "../../assets/community/rentil_carre.jpg";
 
 // 레시피 랭킹 더미 데이터
 const RECIPE_RANKING_POSTS = [
@@ -22,7 +25,8 @@ const RECIPE_RANKING_POSTS = [
         hashtags: ["#퀴노아", "#비건레시피", "#건강식단"],
         likes: 89,
         comments: 23,
-        recipeName: "퀴노아와 채소 볶음"
+        recipeName: "퀴노아와 채소 볶음",
+        imageUrl: quinoaSaladImage
     },
     {
         id: 2,
@@ -40,7 +44,8 @@ const RECIPE_RANKING_POSTS = [
         hashtags: ["#두부스크램블", "#비건브런치", "#아보카도"],
         likes: 67,
         comments: 15,
-        recipeName: "두부 스크램블 아보카도 토스트"
+        recipeName: "두부 스크램블 아보카도 토스트",
+        imageUrl: dubuScrambleImage
     },
     {
         id: 3,
@@ -59,7 +64,8 @@ const RECIPE_RANKING_POSTS = [
         hashtags: ["#렌틸커리", "#비건커리", "#인도요리"],
         likes: 124,
         comments: 34,
-        recipeName: "렌틸 커리"
+        recipeName: "렌틸 커리",
+        imageUrl: rentilCarreImage
     }
 ];
 
@@ -118,6 +124,15 @@ const RecipeRankingTab = () => {
                                                 </span>
                                             </Badge>
                                         </div>
+                                        {post.imageUrl && (
+                                            <div className="mb-3 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                <img
+                                                    src={post.imageUrl}
+                                                    alt={post.recipeName}
+                                                    className="w-full max-h-96 object-contain"
+                                                />
+                                            </div>
+                                        )}
                                         <p className="[font-family:'Nunito',Helvetica] font-normal text-neutral-950 text-sm leading-6 mb-3">
                                             {post.content}
                                         </p>
