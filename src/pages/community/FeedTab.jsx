@@ -4,8 +4,8 @@ import { Button } from "./components/ui/Button";
 import { Card, CardContent } from "./components/ui/Card";
 import { Avatar, AvatarFallback } from "./components/ui/Avatar";
 import { Input } from "./components/ui/Input";
-import { MapPinIcon, HeartIcon, MessageCircleIcon, Plus, X, Send } from "lucide-react";
-import { likePost, getToken, getComments, createComment, deleteComment } from "../../api/backend";
+import { MapPinIcon, HeartIcon, MessageCircleIcon, Plus, X, Send, Trash2 } from "lucide-react";
+import { likePost, getToken, getComments, createComment, deleteComment, deletePost } from "../../api/backend";
 import communityTree from "../../assets/community/tree_iv.jpg";
 
 const FeedTab = ({
@@ -18,6 +18,7 @@ const FeedTab = ({
     popularHashtags,
     onCreatePost,
     onPostUpdate, // 게시글 업데이트 콜백
+    onPostDelete, // 게시글 삭제 콜백
 }) => {
     const [likingPosts, setLikingPosts] = useState(new Set()); // 좋아요 중인 게시글 ID들
     const [likedPosts, setLikedPosts] = useState(new Set()); // 좋아요한 게시글 ID들 (중복 방지용)
@@ -225,6 +226,43 @@ const FeedTab = ({
         }
     };
 
+    // 게시글 삭제 핸들러
+    const handleDeletePost = async (postId) => {
+        if (!confirm("게시글을 삭제하시겠습니까?")) {
+            return;
+        }
+
+        const token = getToken();
+        if (!token) {
+            alert("로그인이 필요합니다.");
+            return;
+        }
+
+        try {
+            await deletePost(postId, token);
+            
+            // 게시글 목록에서 제거
+            if (onPostDelete) {
+                onPostDelete(postId);
+            }
+            
+            alert("게시글이 삭제되었습니다.");
+        } catch (error) {
+            console.error("게시글 삭제 실패:", error);
+            alert(`게시글 삭제에 실패했습니다: ${error.message || "알 수 없는 오류"}`);
+        }
+    };
+
+    // 현재 로그인한 사용자 ID 가져오기
+    const getCurrentUserId = () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            return user.id || null;
+        } catch (error) {
+            return null;
+        }
+    };
+
     // 시간 변환 헬퍼 함수
     const formatTimeAgo = (dateString) => {
         if (!dateString) return "방금 전";
@@ -316,9 +354,17 @@ const FeedTab = ({
                                     </div>
                                 </div>
 
-                                <Button variant="ghost" size="icon" className="h-8 w-9">
-                                    <img alt="Button" src={post.buttonIcon} />
-                                </Button>
+                                {/* 본인 게시글일 경우 삭제 버튼 표시 */}
+                                {isLoggedIn && post.authorId && post.authorId === getCurrentUserId() && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                        onClick={() => handleDeletePost(post.id)}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                )}
                             </div>
 
                             <p className="[font-family:'Nunito',Helvetica] font-normal text-[#354152] text-base tracking-[0] leading-6 mb-3">

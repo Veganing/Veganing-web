@@ -323,6 +323,7 @@ const Community = () => {
                         imageUrl: post.imageUrl,
                         category: post.category,
                         buttonIcon: "https://c.animaapp.com/mh1f3wszSXzzY1/img/button.svg",
+                        authorId: post.author?.id || null, // 작성자 ID 추가
                     }));
                     setFeedPosts(formattedPosts);
                 }
@@ -366,6 +367,13 @@ const Community = () => {
                     ? { ...post, ...updates }
                     : post
             )
+        );
+    };
+
+    // 게시글 삭제 핸들러
+    const handlePostDelete = (postId) => {
+        setFeedPosts(prevPosts =>
+            prevPosts.filter(post => post.id !== postId)
         );
     };
 
@@ -450,6 +458,7 @@ const Community = () => {
                                         popularHashtags={popularHashtags}
                                         onCreatePost={goToCreatePost}
                                         onPostUpdate={handlePostUpdate}
+                                        onPostDelete={handlePostDelete}
                                     />
                                 </TabsContent>
 
