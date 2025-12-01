@@ -1,8 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import useCarbonHistory from "../../../../hooks/useCarbonHistory";
 
 function ProgressContainer() {
     const { carbonHistory, totalCO2, getGrowthStage, loadData } = useCarbonHistory();
+
+    // 그래프용 데이터 변환
+    const chartData = useMemo(() => {
+        return carbonHistory.map((entry, index) => {
+            const date = new Date(entry.date);
+            const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+            return {
+                name: dateStr,
+                co2Saved: parseFloat(entry.co2Saved || 0)
+            };
+        });
+    }, [carbonHistory]);
 
     // 페이지가 보일 때마다 데이터 새로고침
     useEffect(() => {
@@ -61,68 +74,48 @@ function ProgressContainer() {
                 </div>
             </div>
 
-            {/* 범례 */}
-            <div className="flex flex-wrap gap-3 text-xs font-['Inter']">
-                <div className="flex items-center gap-1">
-                    <span>🌰</span>
-                    <span className="text-gray-600">0kg</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <span>🌱</span>
-                    <span className="text-gray-600">~5kg</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <span>🌿</span>
-                    <span className="text-gray-600">~10kg</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <span>🌳</span>
-                    <span className="text-gray-600">~20kg</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <span>🍁</span>
-                    <span className="text-gray-600">20kg+</span>
-                </div>
-            </div>
-
             {/* 그래프 */}
             {carbonHistory.length > 0 ? (
                 <div>
                     <h4 className="text-sm font-medium text-gray-700 font-['Nunito'] mb-3">
-                        저장 기록
+                        일일 CO₂ 절약량
                     </h4>
-                    <div className="overflow-x-auto pb-2">
-                        <div className="flex items-end gap-6 min-w-max py-4">
-                            {carbonHistory.map((entry, index) => {
-                                const date = new Date(entry.date);
-                                const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-                                const stage = getGrowthStage(entry.co2Saved);
-
-                                return (
-                                    <div key={index} className="flex flex-col items-center gap-3">
-                                        {/* 이모지 - 나중에 애니메이션 추가 */}
-                                        <div className={`${stage.size} transition-all hover:scale-110 cursor-pointer`}>
-                                            {stage.emoji}
-                                        </div>
-
-                                        {/* CO2 값 */}
-                                        <div className="text-sm font-bold text-emerald-700 font-['Inter']">
-                                            {entry.co2Saved.toFixed(1)}kg
-                                        </div>
-
-                                        {/* 날짜와 단계 */}
-                                        <div className="flex flex-col items-center gap-0.5">
-                                            <span className="text-xs text-gray-500 font-['Inter']">
-                                                {dateStr}
-                                            </span>
-                                            <span className="text-xs text-gray-400 font-['Inter']">
-                                                {stage.label}
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                        <ResponsiveContainer width="100%" height={250}>
+                            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                <XAxis 
+                                    dataKey="name" 
+                                    stroke="#6b7280"
+                                    fontSize={12}
+                                    tick={{ fill: '#6b7280' }}
+                                />
+                                <YAxis 
+                                    stroke="#6b7280"
+                                    fontSize={12}
+                                    tick={{ fill: '#6b7280' }}
+                                    label={{ value: 'CO₂ (kg)', angle: -90, position: 'insideLeft', fill: '#6b7280' }}
+                                />
+                                <Tooltip 
+                                    contentStyle={{ 
+                                        backgroundColor: '#f9fafb', 
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '8px',
+                                        fontSize: '12px'
+                                    }}
+                                    formatter={(value) => [`${value} kg`, 'CO₂ 절약']}
+                                />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="co2Saved" 
+                                    stroke="#10b981" 
+                                    strokeWidth={3}
+                                    dot={{ fill: '#10b981', r: 5 }}
+                                    activeDot={{ r: 7 }}
+                                    name="CO₂ 절약량"
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             ) : (

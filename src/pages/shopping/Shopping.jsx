@@ -1,6 +1,7 @@
 //import useProductSearch from '../../hooks/useProductSearch';
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import SearchBar from './components/SearchBar';
 import CategoryTabs from './components/CategoryTabs';
 import ProductCard from './components/ProductCard';
@@ -26,11 +27,21 @@ function Shopping() {
         handleCategoryChange
     } = useProductSearch('food');*/
 
+    const [searchParams, setSearchParams] = useSearchParams();
+
     // 상태값들
     const [sortOrder, setSortOrder] = useState("default");
     const [category, setCategory] = useState("ALL");
     const [searchKeyword, setSearchKeyword] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+
+    // URL 쿼리 파라미터에서 검색어 읽기
+    useEffect(() => {
+        const searchQuery = searchParams.get("search");
+        if (searchQuery) {
+            setSearchKeyword(decodeURIComponent(searchQuery));
+        }
+    }, [searchParams]);
 
     const pageSize = 8;
 
@@ -127,7 +138,7 @@ function Shopping() {
             {/* Hero Section */}
             <div className="w-full text-center space-y-6 mb-16 mt-40">
                 <h1 className="text-6xl font-normal font-['Inter'] leading-[60px] tracking-tight text-primary-dark">
-                    🌿 비건 스토어
+                    비건 스토어
                 </h1>
                 <p className="text-xl font-normal font-['Inter'] leading-7 text-gray-700">
                     자연과 함께하는 건강한 라이프스타일을 위한 엄선된 비건 제품들을 만나보세요
@@ -161,6 +172,7 @@ function Shopping() {
                         onSortChange={handleSortChange}
                         resetTrigger={category}
                         category={category}
+                        initialValue={searchKeyword}
                     />
 
                     <div className="w-full">

@@ -228,13 +228,13 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
     }, [selectedImage]);
 
     return (
-        <div className="w-full max-w-[480px] bg-white/90 rounded-[48px] shadow-xl p-6">
+        <div className="w-full bg-white/90 rounded-[48px] shadow-xl p-6" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <h3 className="text-base font-normal font-['Nunito'] text-gray-900 mb-6">
                 오늘의 식단 등록
             </h3>
 
             <div className="space-y-4">
-                <div className="relative h-72 bg-teal-50/30 rounded-3xl border-2 border-teal-300 overflow-hidden shadow-inner">
+                <div className="relative h-72 bg-teal-50/30 rounded-3xl border-2 border-teal-300 overflow-hidden shadow-inner flex items-center justify-center" style={{ width: '100%', minHeight: '288px', maxHeight: '288px', boxSizing: 'border-box' }}>
                     {/* 파일 입력 (완전히 숨김) */}
                     <input
                         id="meal-image-upload"
@@ -247,7 +247,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
 
                     {selectedImage ? (
                         <>
-                            <div className="relative w-full h-full bg-white flex items-center justify-center">
+                            <div className="absolute inset-0 w-full h-full bg-white flex items-center justify-center" style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
                                 {imageLoading && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/90 z-10">
                                         <div className="w-8 h-8 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
@@ -259,11 +259,17 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                                 <img
                                     src={selectedImage}
                                     alt="업로드된 식단"
-                                    className="w-full h-full object-contain"
+                                    className="object-contain"
                                     style={{
+                                        width: 'auto',
+                                        height: 'auto',
                                         maxWidth: '100%',
                                         maxHeight: '100%',
-                                        display: 'block'
+                                        display: 'block',
+                                        flexShrink: 0,
+                                        boxSizing: 'border-box',
+                                        objectFit: 'contain',
+                                        objectPosition: 'center'
                                     }}
                                     onLoad={(e) => {
                                         console.log("✅✅✅ 이미지 렌더링 완료! ✅✅✅");
@@ -298,7 +304,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                             </div>
                         </>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center gap-4">
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-4">
                             <div className="text-5xl text-cyan-500 animate-pulse">📷</div>
                             <p className="text-base text-gray-600 font-['Nunito'] font-medium">
                                 식단 사진을 업로드해주세요
@@ -349,7 +355,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                 <textarea
                     value={description}
                     onChange={handleDescriptionChange}
-                    placeholder="식단에 대한 설명을 입력해주세요... (선택사항)"
+                    placeholder="식단에 대한 레시피 혹은 설명을 입력해주세요 (선택사항)"
                     className="w-full h-24 px-3 py-2 bg-zinc-100 rounded-2xl border-2 border-teal-200 text-sm font-['Nunito'] text-gray-900 placeholder:text-gray-500 resize-none focus:outline-none focus:border-teal-400"
                 />
                 {!selectedImage && !imageUrl.trim() && !description.trim() && (

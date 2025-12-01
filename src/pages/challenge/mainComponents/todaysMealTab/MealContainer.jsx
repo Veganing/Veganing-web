@@ -33,16 +33,18 @@ const MealContainer = memo(function MealContainer() {
     };
 
     return (
-        <div className='w-full flex flex-col gap-8'>
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-2">
-                <MealUploadCard
-                    onAnalysisComplete={setAnalysisResult}
-                    setIsAnalyzing={setIsAnalyzing}
-                    setCurrentImage={setCurrentImage}
-                    setCurrentDescription={setCurrentDescription}
-                    resetTrigger={resetTrigger}
-                />
-                <div className="md:col-span-2">
+        <div className='w-full flex flex-col gap-8' style={{ width: '100%', minWidth: 0 }}>
+            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-2" style={{ width: '100%' }}>
+                <div className="w-full min-w-0 md:col-span-1" style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                    <MealUploadCard
+                        onAnalysisComplete={setAnalysisResult}
+                        setIsAnalyzing={setIsAnalyzing}
+                        setCurrentImage={setCurrentImage}
+                        setCurrentDescription={setCurrentDescription}
+                        resetTrigger={resetTrigger}
+                    />
+                </div>
+                <div className="w-full min-w-0 md:col-span-2" style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
                     <LLMAnalysis
                         output={analysisResult}
                         isAnalyzing={isAnalyzing}

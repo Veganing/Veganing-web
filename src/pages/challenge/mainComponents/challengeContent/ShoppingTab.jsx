@@ -267,7 +267,7 @@ const ShoppingTab = () => {
                                     <p className="text-xs">식단을 분석하고 저장하면 추천 식재료가 표시됩니다.</p>
                                 </div>
                             ) : (
-                            <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                            <div className="space-y-2 max-h-[693px] overflow-y-auto">
                                 {requiredIngredients.map((ingredient) => (
                                     <button
                                         key={ingredient.id}
