@@ -155,8 +155,8 @@ function ChallengeMain() {
     const progress = challengeData.progress || 0;
 
     return (
-        <div className="bg-white w-full flex flex-col animate-fadeIn min-h-screen pt-[157px] pb-[80px]">
-            <div className="max-w-7xl mx-auto px-4 flex flex-col gap-8">
+        <div className="bg-white w-full flex flex-col animate-fadeIn min-h-screen pt-[157px] pb-[80px]" style={{ width: '100%', minWidth: 0 }}>
+            <div className="max-w-7xl mx-auto px-4 flex flex-col gap-8" style={{ width: '100%', maxWidth: '1280px', minWidth: 0 }}>
                 
                 {/* Challenge Hero */}
                 <div className="w-full text-center space-y-6 mb-12">
@@ -175,12 +175,13 @@ function ChallengeMain() {
                 </div>
 
                 {/* Challenge State Cards */}
-                <div className="w-full flex justify-center mb-12">
-                    <div className="flex gap-4 flex-wrap justify-center">
+                <div className="w-full flex justify-center mb-12" style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
+                    <div className="flex gap-4 flex-wrap justify-center" style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
                         {cards.map((card, idx) => (
                             <div 
                                 key={idx} 
-                                className="w-[236px] h-[160px] bg-white/90 rounded-[35px] shadow-2xl p-6 flex flex-col items-center justify-center gap-3"
+                                className="w-[236px] h-[160px] bg-white/90 rounded-[35px] shadow-2xl p-6 flex flex-col items-center justify-center gap-3 flex-shrink-0"
+                                style={{ width: '236px', minWidth: '236px', maxWidth: '236px', flexShrink: 0 }}
                             >
                                 <div className="text-4xl">{card.emoji}</div>
                                 <div className="text-3xl font-bold font-['Nunito'] text-gray-900">
@@ -195,7 +196,7 @@ function ChallengeMain() {
                 </div>
 
                 {/* Challenge Progress */}
-                <div className="w-full bg-white/90 rounded-[48px] shadow-2xl p-6 flex flex-col gap-4">
+                <div className="w-full bg-white/90 rounded-[48px] shadow-2xl p-6 flex flex-col gap-4" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg font-normal font-['Nunito'] text-gray-900">
                             챌린지 진행률
@@ -258,9 +259,9 @@ function ChallengeMain() {
                 <ChallengeTabs />
 
                 {/* Tab Content - 모든 탭을 렌더링하되, CSS로 보이기/숨기기 제어 */}
-                <div className="relative">
+                <div className="relative w-full" style={{ width: '100%', minWidth: 0 }}>
                     {/* 오늘의 식단 */}
-                    <div className={activeTab === 'meal' ? 'block' : 'hidden'}>
+                    <div className={activeTab === 'meal' ? 'block' : 'hidden'} style={{ width: '100%' }}>
                         <MealContainer />
                     </div>
                     

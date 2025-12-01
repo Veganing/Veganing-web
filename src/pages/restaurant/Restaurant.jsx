@@ -7,7 +7,7 @@ function Restaurant() {
             {/* Hero */}
             <div className="w-full text-center space-y-6 mt-40 mb-12">
                 <h1 className="text-6xl font-normal font-['Inter'] leading-[60px] tracking-tight text-primary-dark">
-                    🌿 비건 식당
+                    비건 식당
                 </h1>
                 <p className="text-xl font-normal font-['Inter'] leading-7 text-gray-700">
                     내 주변의 비건 친화적인 맛집을 찾아보세요

@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useCarbonHistory from '../../../../hooks/useCarbonHistory';
+import firstImage from '../../../../assets/popup/first.png';
+import secondImage from '../../../../assets/popup/second.png';
+import thirdImage from '../../../../assets/popup/third.png';
+import fourthImage from '../../../../assets/popup/fourth.png';
+import fifthImage from '../../../../assets/popup/fifth.png';
 
 function EnvImpactPopup({ isOpen, onClose, data }) {
     const { addCarbonData } = useCarbonHistory();
@@ -8,6 +13,24 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
     const [showNotification, setShowNotification] = useState(false);
     
     if (!isOpen && !showNotification) return null;
+
+    // 등급 기준 정의
+    const gradeCriteria = [
+        { min: 6.0, image: fifthImage },   // 1등급 (최우수)
+        { min: 5.5, image: fourthImage },  // 2등급 (우수)
+        { min: 4.5, image: thirdImage },   // 3등급 (보통)
+        { min: 3.0, image: secondImage },  // 4등급 (주의)
+        { min: 0, image: firstImage }      // 5등급 (개선 필요)
+    ];
+
+    // CO2 절약량에 따른 등급 이미지 선택
+    const getGradeImage = (co2Saved) => {
+        const co2 = parseFloat(co2Saved || 0);
+        const grade = gradeCriteria.find(criterion => co2 >= criterion.min);
+        return grade?.image || firstImage;
+    };
+
+    const gradeImage = getGradeImage(data?.co2Saved);
 
     const handleLike = () => {
         // 데이터 저장
@@ -50,8 +73,12 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                                 </div>
                             </div>
 
-                            <div className="flex-1 bg-white/20 rounded-2xl flex items-center justify-center my-4">
-                                <div className="text-8xl">🌳</div>
+                            <div className="flex-1 bg-white/20 rounded-2xl flex items-center justify-center my-4 overflow-hidden">
+                                <img 
+                                    src={gradeImage} 
+                                    alt="환경 기여도 등급"
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
 
                             <div className="flex flex-col gap-3">

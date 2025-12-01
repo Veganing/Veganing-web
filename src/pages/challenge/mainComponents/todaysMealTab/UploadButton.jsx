@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import EnvImpactPopup from './EnvimpactPopup';
-import { calculateCarbonFootprint, recommendMealRecipe } from '../../../../api/openai';
+import { calculateCarbonFootprint, recommendMealRecipe, extractIngredients, calculateSingleMealCarbonFootprint } from '../../../../api/openai';
 import { addPoints, getToken } from '../../../../api/backend';
 
 function UploadButton({ mealsCount, onSaveComplete }) {
@@ -25,42 +25,97 @@ function UploadButton({ mealsCount, onSaveComplete }) {
             setIsCalculating(true);
             
             try {
-                // 각 식단에 대해 추천 레시피 생성
-                console.log("🍽️ 추천 레시피 생성 시작...");
-                const mealsWithRecipes = await Promise.all(
-                    meals.map(async (meal) => {
-                        // 이미 추천 레시피가 있으면 그대로 사용
-                        if (meal.recommendedRecipe) {
-                            return meal;
-                        }
-                        
-                        // 분석 결과가 있으면 추천 레시피 생성
-                        if (meal.analysis) {
-                            try {
-                                const recipe = await recommendMealRecipe(meal.analysis);
-                                if (recipe) {
-                                    console.log(`✅ 식단 ${meal.id}에 대한 추천 레시피 생성 완료`);
-                                    return { ...meal, recommendedRecipe: recipe };
-                                }
-                            } catch (error) {
-                                console.error(`식단 ${meal.id}의 추천 레시피 생성 실패:`, error);
-                            }
-                        }
-                        return meal;
-                    })
-                );
+                // 전체 식단을 종합하여 하나의 추천 레시피 생성
+                console.log("🍽️ 전체 식단 기반 추천 레시피 생성 시작...");
                 
-                // 추천 레시피가 포함된 식단들을 localStorage에 저장
+                // 모든 식단의 분석 결과를 합쳐서 종합 분석 결과 생성
+                const combinedAnalysis = meals
+                    .filter(meal => meal.analysis)
+                    .map(meal => meal.analysis)
+                    .join('\n\n---\n\n');
+                
+                let dailyRecommendedRecipe = null;
+                
+                if (combinedAnalysis) {
+                    try {
+                        // 전체 식단을 종합하여 추천 레시피 생성
+                        dailyRecommendedRecipe = await recommendMealRecipe(combinedAnalysis);
+                        console.log("✅ 전체 식단 기반 추천 레시피 생성 완료");
+                    } catch (error) {
+                        console.error('전체 식단 기반 추천 레시피 생성 실패:', error);
+                    }
+                }
+                
+                // 식단들을 localStorage에 저장 (개별 추천 레시피는 저장하지 않음)
                 try {
                     const STORAGE_KEY = 'challenge_meal_index_state';
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(mealsWithRecipes));
-                    console.log("✅ 추천 레시피와 함께 식단 저장 완료");
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(meals));
+                    console.log("✅ 식단 저장 완료");
+                    
+                    // 전체 식단 기반 추천 레시피를 별도로 저장
+                    if (dailyRecommendedRecipe) {
+                        const DAILY_RECIPE_KEY = 'challenge_daily_recommended_recipe';
+                        localStorage.setItem(DAILY_RECIPE_KEY, dailyRecommendedRecipe);
+                        console.log("✅ 전체 식단 기반 추천 레시피 저장 완료");
+                    }
                 } catch (error) {
                     console.error('localStorage 저장 실패:', error);
                 }
                 
-                // LLM으로 탄소발자국 계산
-                const calculatedData = await calculateCarbonFootprint(meals);
+                // LLM으로 더 정확한 탄소발자국 계산
+                console.log("🌱 정확한 탄소발자국 계산 시작...");
+                let calculatedData;
+                
+                try {
+                    // 전체 식단 기반 추천 레시피에서 식재료 추출
+                    let allIngredients = [];
+                    if (dailyRecommendedRecipe) {
+                        try {
+                            const extractedIngredients = await extractIngredients(dailyRecommendedRecipe);
+                            if (extractedIngredients && extractedIngredients.length > 0) {
+                                allIngredients = extractedIngredients;
+                                console.log("✅ 전체 식단 식재료 추출 완료:", allIngredients);
+                            }
+                        } catch (error) {
+                            console.error('식재료 추출 실패:', error);
+                        }
+                    }
+                    
+                    // 각 식단별로 정확한 탄소발자국 계산
+                    const combinedAnalysis = meals
+                        .filter(meal => meal.analysis)
+                        .map(meal => meal.analysis)
+                        .join('\n\n---\n\n');
+                    
+                    if (combinedAnalysis && allIngredients.length > 0) {
+                        // 식재료 정보가 있으면 더 정확한 계산
+                        const detailedCarbon = await calculateSingleMealCarbonFootprint(combinedAnalysis, allIngredients);
+                        console.log("✅ 정확한 탄소발자국 계산 완료:", detailedCarbon);
+                        
+                        // 전체 식단 수와 비건 비율 계산
+                        const veganMeals = meals.filter(meal => {
+                            const analysis = meal.analysis || '';
+                            return analysis.includes('완전 비건') || analysis.includes('비건 ⭐⭐⭐');
+                        }).length;
+                        const veganRate = meals.length > 0 ? Math.round((veganMeals / meals.length) * 100) : 0;
+                        
+                        calculatedData = {
+                            co2Saved: parseFloat(detailedCarbon.co2Saved || 0).toFixed(1),
+                            veganRate: veganRate,
+                            mealCount: meals.length,
+                            totalCO2Emission: parseFloat(detailedCarbon.totalCO2Emission || 0).toFixed(2),
+                            ingredientBreakdown: detailedCarbon.ingredientBreakdown || []
+                        };
+                    } else {
+                        // 식재료 정보가 없으면 기존 방식 사용
+                        console.log("⚠️ 식재료 정보 없음, 기본 계산 방식 사용");
+                        calculatedData = await calculateCarbonFootprint(meals);
+                    }
+                } catch (error) {
+                    console.error('정확한 탄소발자국 계산 실패, 기본 방식 사용:', error);
+                    // 실패 시 기본 계산 방식 사용
+                    calculatedData = await calculateCarbonFootprint(meals);
+                }
                 
                 // 포인트 추가 및 레벨업 (200포인트)
                 try {
