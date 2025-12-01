@@ -1,12 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 
-function SearchBar({ onSearch, sortOrder, onSortChange, resetTrigger, category }) {
-    const [query, setQuery] = useState('');
+function SearchBar({ onSearch, sortOrder, onSortChange, resetTrigger, category, initialValue = '' }) {
+    const [query, setQuery] = useState(initialValue);
 
     useEffect(() => {
         setQuery('');
     }, [resetTrigger]);
+
+    // initialValue가 변경되면 query 업데이트 (URL 파라미터로부터 검색어가 들어올 때)
+    useEffect(() => {
+        if (initialValue) {
+            setQuery(initialValue);
+        }
+    }, [initialValue]);
 
     const handleSubmit = (e) => {
         e.preventDefault();

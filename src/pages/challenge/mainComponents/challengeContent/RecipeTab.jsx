@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { recommendMealRecipe } from '../../../../api/openai';
 
 const STORAGE_KEY = 'challenge_meal_index_state';
+const DAILY_RECIPE_KEY = 'challenge_daily_recommended_recipe';
 
 // 더미 레시피 데이터 (퀴노아와 채소 볶음)
 const DUMMY_RECIPE = {
@@ -82,6 +83,18 @@ const RecipeTab = () => {
     const loadRecommendedRecipes = async () => {
         setIsLoading(true);
         try {
+            // 전체 식단 기반 추천 레시피를 먼저 확인
+            let dailyRecommendedRecipe = null;
+            try {
+                const storedDailyRecipe = localStorage.getItem(DAILY_RECIPE_KEY);
+                if (storedDailyRecipe) {
+                    dailyRecommendedRecipe = storedDailyRecipe;
+                    console.log('🔵 RecipeTab - 전체 식단 기반 추천 레시피 발견');
+                }
+            } catch (error) {
+                console.error('전체 식단 기반 추천 레시피 로드 실패:', error);
+            }
+            
             // localStorage에서 직접 식단 가져오기
             let meals = getMealsFromStorage();
             
@@ -97,39 +110,32 @@ const RecipeTab = () => {
             }
             
             console.log('🔵 RecipeTab - 최종 가져온 식단 개수:', meals.length);
-            console.log('🔵 RecipeTab - 식단 데이터:', meals);
             
-            // localStorage 내용도 직접 확인
-            const rawStorage = localStorage.getItem(STORAGE_KEY);
-            console.log('🔵 RecipeTab - localStorage 원본:', rawStorage);
-            
-            if (meals.length === 0) {
-                setRecipes([]);
-                return;
-            }
-
             // 더미 레시피를 항상 첫 번째에 추가
             const recommendedRecipes = [DUMMY_RECIPE];
             
-            for (const meal of meals) {
-                // 이미 추천 레시피가 저장되어 있으면 사용
-                if (meal.recommendedRecipe) {
-                    // 2개의 레시피를 파싱 (최대 2개만)
-                    const parsedRecipes = parseMultipleRecipes(meal.recommendedRecipe, meal.analysis);
+            // 전체 식단 기반 추천 레시피가 있으면 우선 추가
+            if (dailyRecommendedRecipe) {
+                try {
+                    // 전체 식단의 분석 결과를 합쳐서 종합 분석 결과 생성
+                    const combinedAnalysis = meals
+                        .filter(meal => meal.analysis)
+                        .map(meal => meal.analysis)
+                        .join('\n\n---\n\n');
+                    
+                    // 전체 식단 기반 추천 레시피를 파싱하여 추가
+                    const parsedRecipes = parseMultipleRecipes(dailyRecommendedRecipe, combinedAnalysis);
                     recommendedRecipes.push(...parsedRecipes.slice(0, 2)); // 최대 2개만 추가
-                } else if (meal.analysis) {
-                    // 추천 레시피가 없으면 새로 생성
-                    try {
-                        const recipeText = await recommendMealRecipe(meal.analysis);
-                        if (recipeText) {
-                            // 2개의 레시피를 파싱 (최대 2개만)
-                            const parsedRecipes = parseMultipleRecipes(recipeText, meal.analysis);
-                            recommendedRecipes.push(...parsedRecipes.slice(0, 2)); // 최대 2개만 추가
-                        }
-                    } catch (error) {
-                        console.error('레시피 추천 실패:', error);
-                    }
+                    console.log('✅ 전체 식단 기반 추천 레시피 추가 완료');
+                } catch (error) {
+                    console.error('전체 식단 기반 추천 레시피 파싱 실패:', error);
                 }
+            }
+            
+            // 전체 식단 기반 추천 레시피가 없거나 식단이 없으면 빈 배열 반환
+            if (meals.length === 0 && !dailyRecommendedRecipe) {
+                setRecipes(recommendedRecipes);
+                return;
             }
             
             setRecipes(recommendedRecipes);
@@ -249,7 +255,7 @@ const RecipeTab = () => {
             <div className="max-w-6xl mx-auto">
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">오늘의 추천 레시피</h1>
-                    <p className="text-gray-600">식단 분석 결과를 바탕으로 추천하는 레시피입니다</p>
+                    <p className="text-gray-600">오늘의 전체 식단을 종합하여 추천하는 레시피입니다</p>
                     <button
                         onClick={loadRecommendedRecipes}
                         disabled={isLoading}
@@ -270,9 +276,10 @@ const RecipeTab = () => {
                     {recipes.map((recipe) => (
                         <div 
                             key={recipe.id} 
-                            className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
+                            className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
+                            style={{ minHeight: '300px' }}
                         >
-                            <div className="p-6">
+                            <div className="p-6 flex flex-col h-full">
                                 {/* 레시피명 */}
                                 <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
                                     {recipe.title}
@@ -280,7 +287,7 @@ const RecipeTab = () => {
                                 
                                 {/* 추천 이유 설명 - 배지 없이 일반 텍스트로 표시 */}
                                 {recipe.description && (
-                                    <p className="text-sm text-gray-600 mb-4 leading-relaxed line-clamp-10">
+                                    <p className="text-sm text-gray-600 mb-3 leading-relaxed line-clamp-10 flex-1">
                                         {recipe.description}
                                     </p>
                                 )}
@@ -311,10 +318,10 @@ const RecipeTab = () => {
                                     </div>
                                 </div>
                                 
-                                {/* 상세보기 버튼 */}
+                                {/* 상세보기 버튼 - 항상 하단에 고정 */}
                                 <button
+                                    className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-lg hover:from-cyan-600 hover:to-emerald-600 transition-all text-sm font-medium shadow-md hover:shadow-lg mt-auto"
                                     onClick={() => setSelectedRecipe(recipe)}
-                                    className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-lg hover:from-cyan-600 hover:to-emerald-600 transition-all text-sm font-medium shadow-md hover:shadow-lg"
                                 >
                                     상세보기
                                 </button>

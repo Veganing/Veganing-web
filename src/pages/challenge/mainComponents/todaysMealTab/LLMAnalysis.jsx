@@ -1,100 +1,9 @@
-import { useState, useEffect } from 'react';
-import { recommendMealRecipe, extractIngredients, calculateSingleMealCarbonFootprint } from '../../../../api/openai';
-
-// 더미 레시피 데이터 (퀴노아와 채소 볶음)
-const DUMMY_RECIPE_TEXT = `🍽️ **추천 식단명**
-퀴노아와 채소 볶음
-
-📋 **필요한 식재료**
-- 퀴노아 1컵 (조리된 것)
-- 브로콜리 1컵 (잘라서)
-- 당근 1개 (얇게 썬 것)
-- 파프리카 1개 (채썬 것)
-- 올리브 오일 1큰술
-- 간장 1큰술
-- 생강가루 약간
-
-👨‍🍳 **간단한 조리법**
-1. 프라이팬에 올리브 오일을 두르고, 중불에서 당근, 브로콜리, 파프리카를 볶습니다.
-2. 채소가 부드러워질 때까지 볶다가, 조리된 퀴노아를 추가합니다.
-3. 간장과 생강가루를 넣고 잘 섞은 후 2~3분 더 볶아줍니다
-
-💡 **추천 이유**
-퀴노아는 완전 단백질이 포함되어 있어 영양가가 높습니다. 다양한 채소와 함께 볶음 형태로 조리하여 비타민과 미네랄을 손쉽게 섭취할 수 있는 방법입니다.`;
-
 function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, onUploadComplete }) {
-    const [recommendedRecipe, setRecommendedRecipe] = useState(null);
-    const [ingredients, setIngredients] = useState([]);
-    const [carbonFootprint, setCarbonFootprint] = useState(null);
-    const [isRecommending, setIsRecommending] = useState(false);
-    const [isExtracting, setIsExtracting] = useState(false);
-    const [isCalculating, setIsCalculating] = useState(false);
-
-    // output이 리셋되면 추천 결과도 리셋
-    useEffect(() => {
-        if (!output) {
-            setRecommendedRecipe(null);
-            setIngredients([]);
-            setCarbonFootprint(null);
-            setIsRecommending(false);
-            setIsExtracting(false);
-            setIsCalculating(false);
-        }
-    }, [output]);
-
-    // 분석 결과가 나오면 더미 레시피를 먼저 표시하고, 실제 AI 추천도 받아오기
-    useEffect(() => {
-        if (output && !isAnalyzing && !recommendedRecipe && !isRecommending) {
-            // 실제 AI 추천을 받아오기 (더미 레시피 포함)
-            handleAutoRecommend();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [output, isAnalyzing]);
-
-    const handleAutoRecommend = async () => {
-        if (!output) return;
-
-        try {
-            // 1. 식단 추천 (AI가 실제로 추천)
-            setIsRecommending(true);
-            console.log("🍽️ 식단 추천 시작...");
-            const recipe = await recommendMealRecipe(output);
-            if (recipe) {
-                // 더미 레시피와 AI 추천 레시피를 합쳐서 표시
-                const combinedRecipe = `${DUMMY_RECIPE_TEXT}\n\n---레시피 2---\n${recipe}`;
-                setRecommendedRecipe(combinedRecipe);
-                console.log("✅ 식단 추천 완료");
-                
-                // 2. 식재료 추출 (AI 추천 레시피에서만)
-                setIsExtracting(true);
-                console.log("📋 식재료 추출 시작...");
-                const extracted = await extractIngredients(recipe);
-                if (extracted && extracted.length > 0) {
-                    setIngredients(extracted);
-                    console.log("✅ 식재료 추출 완료:", extracted);
-                    
-                    // 3. 탄소발자국 계산 (실제 계산)
-                    setIsCalculating(true);
-                    console.log("🌱 탄소발자국 계산 시작...");
-                    const carbon = await calculateSingleMealCarbonFootprint(output, extracted);
-                    setCarbonFootprint(carbon);
-                    console.log("✅ 탄소발자국 계산 완료:", carbon);
-                }
-            }
-        } catch (error) {
-            console.error("자동 추천 중 오류:", error);
-        } finally {
-            setIsRecommending(false);
-            setIsExtracting(false);
-            setIsCalculating(false);
-        }
-    };
 
     const handleUpload = () => {
         console.log("🔵 handleUpload 호출됨");
         console.log("🔵 output:", output ? "있음" : "없음");
         console.log("🔵 currentImage:", currentImage ? "있음" : "없음");
-        console.log("🔵 recommendedRecipe:", recommendedRecipe ? "있음" : "없음");
         console.log("🔵 window.addMealToIndex:", typeof window.addMealToIndex);
         
         if (!output) {
@@ -115,15 +24,14 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
 
         try {
             // 업로드 버튼으로 저장할 때는 레시피 데이터를 저장하지 않음
-            // (더미 레시피가 포함되지 않도록 하기 위함)
-            // 단, 탄소발자국은 실제 계산된 값이 있으면 저장
+            // 전체 저장 시에만 추천 레시피가 생성됨
             const mealData = {
                 image: currentImage,
                 description: currentDescription || '',
                 analysis: output,
-                recommendedRecipe: null, // 업로드 시에는 레시피 저장하지 않음
-                ingredients: null, // 업로드 시에는 식재료 저장하지 않음
-                carbonFootprint: carbonFootprint || null // 탄소발자국은 실제 계산된 값 저장
+                recommendedRecipe: null, // 개별 업로드 시에는 레시피 저장하지 않음
+                ingredients: null,
+                carbonFootprint: null
             };
             
             console.log("🔵 저장할 식단 데이터:", mealData);
@@ -144,24 +52,7 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
         }
     };
 
-    // GPT 응답 파싱 (수정됨)
-    // 추천 식단 파싱
-    const parseRecommendedRecipe = (text) => {
-        if (!text) return null;
-
-        const recipeNameMatch = text.match(/🍽️\s*\*\*추천 식단명\*\*\s*\n([^\n]+)/);
-        const ingredientsMatch = text.match(/📋\s*\*\*필요한 식재료\*\*\s*\n([\s\S]*?)(?=👨‍🍳|💡|$)/);
-        const recipeMatch = text.match(/👨‍🍳\s*\*\*간단한 조리법\*\*\s*\n([\s\S]*?)(?=💡|$)/);
-        const reasonMatch = text.match(/💡\s*\*\*추천 이유\*\*\s*\n([\s\S]*?)$/);
-
-        return {
-            name: recipeNameMatch?.[1]?.trim(),
-            ingredients: ingredientsMatch?.[1]?.trim(),
-            recipe: recipeMatch?.[1]?.trim(),
-            reason: reasonMatch?.[1]?.trim()
-        };
-    };
-
+    // GPT 응답 파싱
     const parseAnalysis = (text) => {
         if (!text) return null;
 
@@ -220,7 +111,7 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
     const analysis = parseAnalysis(output);
 
     return (
-        <div className="w-full bg-white/90 rounded-[48px] shadow-2xl p-6 flex flex-col gap-4 h-[555px]">
+        <div className="w-full bg-white/90 rounded-[48px] shadow-2xl p-6 flex flex-col gap-4 h-[666px]" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <div className="flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold font-['Nunito'] text-gray-900">
@@ -370,129 +261,6 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
                             </div>
                         )}
 
-                        {/* 추천 식단 */}
-                        {recommendedRecipe && (
-                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-200">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">🍽️</span>
-                                    <h4 className="font-semibold text-gray-900">추천 식단</h4>
-                                    {isRecommending && (
-                                        <div className="w-4 h-4 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin ml-2"></div>
-                                    )}
-                                </div>
-                                {recommendedRecipe ? (
-                                    (() => {
-                                        const parsed = parseRecommendedRecipe(recommendedRecipe);
-                                        return parsed && parsed.name ? (
-                                            <div className="space-y-3 text-sm">
-                                                {parsed.name && (
-                                                    <div>
-                                                        <p className="font-semibold text-purple-900 text-base">{parsed.name}</p>
-                                                    </div>
-                                                )}
-                                                {parsed.ingredients && (
-                                                    <div className="bg-white/60 rounded-lg p-2">
-                                                        <p className="font-medium text-gray-800 mb-1">필요한 식재료:</p>
-                                                        <p className="text-gray-700 whitespace-pre-line text-xs">{parsed.ingredients}</p>
-                                                    </div>
-                                                )}
-                                                {parsed.recipe && (
-                                                    <div className="bg-white/60 rounded-lg p-2">
-                                                        <p className="font-medium text-gray-800 mb-1">조리법:</p>
-                                                        <p className="text-gray-700 whitespace-pre-line text-xs">{parsed.recipe}</p>
-                                                    </div>
-                                                )}
-                                                {parsed.reason && (
-                                                    <div className="bg-purple-100/60 rounded-lg p-2">
-                                                        <p className="font-medium text-purple-900 mb-1">추천 이유:</p>
-                                                        <p className="text-purple-800 whitespace-pre-line text-xs">{parsed.reason}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="text-sm text-gray-700 whitespace-pre-line">
-                                                {recommendedRecipe}
-                                            </div>
-                                        );
-                                    })()
-                                ) : (
-                                    <p className="text-xs text-gray-500">AI가 식단을 추천하고 있습니다...</p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* 식재료 목록 */}
-                        {(isExtracting || ingredients.length > 0) && (
-                            <div className="bg-white rounded-2xl p-4 border border-green-200">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">📋</span>
-                                    <h4 className="font-semibold text-gray-900">필요한 식재료</h4>
-                                    {isExtracting && (
-                                        <div className="w-4 h-4 border-2 border-green-300 border-t-green-600 rounded-full animate-spin ml-2"></div>
-                                    )}
-                                </div>
-                                {ingredients.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {ingredients.map((ing, idx) => (
-                                            <div key={idx} className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
-                                                <span className="text-sm text-gray-700 font-medium">{ing.name}</span>
-                                                <span className="text-xs text-gray-600">
-                                                    {ing.amount} {ing.unit || ''}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-xs text-gray-500">식재료를 추출하고 있습니다...</p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* 탄소발자국 */}
-                        {(isCalculating || carbonFootprint) && (
-                            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-4 border border-emerald-200">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">🌱</span>
-                                    <h4 className="font-semibold text-gray-900">탄소발자국</h4>
-                                    {isCalculating && (
-                                        <div className="w-4 h-4 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin ml-2"></div>
-                                    )}
-                                </div>
-                                {carbonFootprint ? (
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center p-3 bg-emerald-100 rounded-lg">
-                                            <span className="text-sm font-medium text-gray-700">총 CO2 배출량</span>
-                                            <span className="text-lg font-bold text-emerald-700">
-                                                {carbonFootprint.totalCO2Emission} kg CO₂
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-center p-3 bg-teal-100 rounded-lg">
-                                            <span className="text-sm font-medium text-gray-700">절약된 CO2</span>
-                                            <span className="text-lg font-bold text-teal-700">
-                                                {carbonFootprint.co2Saved} kg CO₂
-                                            </span>
-                                        </div>
-                                        {carbonFootprint.ingredientBreakdown && carbonFootprint.ingredientBreakdown.length > 0 && (
-                                            <div className="mt-3 pt-3 border-t border-emerald-200">
-                                                <p className="text-xs font-medium text-gray-600 mb-2">식재료별 배출량:</p>
-                                                <div className="space-y-1">
-                                                    {carbonFootprint.ingredientBreakdown.map((item, idx) => (
-                                                        <div key={idx} className="flex justify-between text-xs">
-                                                            <span className="text-gray-600">{item.name}</span>
-                                                            <span className="text-gray-700 font-medium">
-                                                                {item.co2Emission?.toFixed(2) || '0.00'} kg CO₂
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <p className="text-xs text-gray-500">탄소발자국을 계산하고 있습니다...</p>
-                                )}
-                            </div>
-                        )}
                     </div>
                 ) : (
                     <p className="text-sm font-['Nunito'] text-gray-500 text-center">
