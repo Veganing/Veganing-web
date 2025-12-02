@@ -1,5 +1,3 @@
-// 위치: src/pages/user/Login.jsx
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
@@ -23,14 +21,12 @@ import { setAuth } from "../../hooks/auth";
 function Login({ onSignupClick, onLoginSuccess }) {
     const navigate = useNavigate();
 
-    // 입력 상태
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
-    // 제출 처리 - 백엔드 API 호출
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isLoading) return;
@@ -39,25 +35,21 @@ function Login({ onSignupClick, onLoginSuccess }) {
         setIsLoading(true);
 
         try {
-            // 백엔드 API 호출
             const response = await login({
                 email: email.trim(),
                 password: password,
             });
 
-            // 토큰과 사용자 정보 저장
             if (response.token) {
                 saveToken(response.token);
             }
             if (response.user) {
                 saveUser(response.user);
-                // 기존 auth 형식도 유지 (호환성)
                 localStorage.setItem("auth", JSON.stringify({ 
                     email: response.user.email, 
                     name: response.user.nickname || response.user.name 
                 }));
                 
-                // AuthContext를 위한 인증 정보 저장 (ProtectedRoute에서 사용)
                 setAuth({
                     email: response.user.email,
                     name: response.user.nickname || response.user.name,
@@ -65,11 +57,10 @@ function Login({ onSignupClick, onLoginSuccess }) {
                 });
             }
 
-            // 필요 시 상위 콜백 호출
             if (typeof onLoginSuccess === "function") onLoginSuccess();
 
             alert("로그인에 성공하셨습니다!");
-            navigate("/");  // 로그인 성공 시 홈으로 이동
+            navigate("/"); 
         } catch (err) {
             console.error("로그인 실패:", err);
             const errorMessage = err.message || "로그인 중 오류가 발생했습니다.";
@@ -89,7 +80,6 @@ function Login({ onSignupClick, onLoginSuccess }) {
                 className="w-full max-w-md"
             >
                 <Card className="border-0 shadow-2xl shadow-teal-100/50 rounded-3xl overflow-hidden">
-                    {/* 상단 비주얼 */}
                     <CardHeader className="space-y-4 bg-gradient-to-br from-teal-400 to-emerald-400 text-white pb-8 pt-10">
                         <div className="flex justify-center mb-2">
                             <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-lg">
@@ -102,10 +92,8 @@ function Login({ onSignupClick, onLoginSuccess }) {
                         </CardDescription>
                     </CardHeader>
 
-                    {/* 본문: 로그인 폼 */}
                     <CardContent className="pt-8 pb-8 px-8">
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* 이메일 */}
                             <div className="space-y-2">
                                 <Label htmlFor="email" className="text-gray-700">이메일</Label>
                                 <div className="relative">
@@ -122,7 +110,6 @@ function Login({ onSignupClick, onLoginSuccess }) {
                                 </div>
                             </div>
 
-                            {/* 비밀번호 */}
                             <div className="space-y-2">
                                 <Label htmlFor="password" className="text-gray-700">비밀번호</Label>
                                 <div className="relative">
@@ -147,7 +134,6 @@ function Login({ onSignupClick, onLoginSuccess }) {
                                 </div>
                             </div>
 
-                            {/* 보조행 */}
                             <div className="flex items-center justify-between text-sm">
                                 <label className="flex items-center space-x-2 cursor-pointer">
                                     <input
@@ -157,22 +143,20 @@ function Login({ onSignupClick, onLoginSuccess }) {
                                     <span className="text-gray-600">로그인 상태 유지</span>
                                 </label>
                                 <button
-                                    type="button"                         // 폼 제출 방지
-                                    onClick={() => navigate("/forgot-password")} // 비번 찾기 페이지로 이동
+                                    type="button"                         
+                                    onClick={() => navigate("/forgot-password")}
                                     className="text-teal-600 hover:text-teal-700 transition-colors underline-offset-2 hover:underline"
                                 >
                                 비밀번호 찾기
                                 </button>
                             </div>
 
-                            {/* 에러 메시지 */}
                             {error && (
                                 <div className="p-3 rounded-lg bg-red-50 border border-red-200">
                                     <p className="text-sm text-red-600 text-center">{error}</p>
                                 </div>
                             )}
 
-                            {/* 버튼 */}
                             <Button
                                 type="submit"
                                 disabled={isLoading}
@@ -182,7 +166,6 @@ function Login({ onSignupClick, onLoginSuccess }) {
                             </Button>
                         </form>
 
-                        {/* 회원가입 유도 */}
                         <div className="mt-8 pt-6 border-t-2 border-gray-100">
                             <p className="text-center text-gray-600">
                                 아직 회원이 아니신가요?{" "}
@@ -203,13 +186,12 @@ function Login({ onSignupClick, onLoginSuccess }) {
     );
 }
 
-// PropTypes: 옵션으로 완화(넘기지 않아도 에러 안 남)
+
 Login.propTypes = {
     onSignupClick: PropTypes.func,
     onLoginSuccess: PropTypes.func,
 };
 
-// 기본값: no-op
 Login.defaultProps = {
     onSignupClick: () => {},
     onLoginSuccess: () => {},

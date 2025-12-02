@@ -1,22 +1,19 @@
-// 위치: src/pages/user/OrderPage.jsx
-
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-    CardDescription,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
 } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 
 export const OrderPage = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const orderState = location.state;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const orderState = location.state;
 
-  // 장바구니 거치지 않고 직접 /order 로 들어왔을 때
   if (!orderState || !orderState.items || orderState.items.length === 0) {
     return (
       <div className="min-h-screen bg-white py-8 px-4">
@@ -47,11 +44,8 @@ export const OrderPage = () => {
   return (
     <div className="min-h-screen bg-white py-8 px-4">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* 페이지 제목 + 뒤로 가기 */}
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold text-gray-800">
-            주문/결제
-          </h1>
+          <h1 className="text-3xl font-semibold text-gray-800">주문/결제</h1>
           <Button
             variant="outline"
             className="rounded-2xl border-teal-200"
@@ -62,9 +56,7 @@ export const OrderPage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[2fr,1.4fr] gap-6">
-          {/* 왼쪽: 주문자 정보 + 배송지 정보 + 결제 수단 */}
           <div className="space-y-6">
-            {/* 주문자 정보 */}
             <Card className="rounded-3xl border-2 border-teal-50 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-gray-800">주문자 정보</CardTitle>
@@ -108,7 +100,6 @@ export const OrderPage = () => {
               </CardContent>
             </Card>
 
-            {/* 배송지 정보 */}
             <Card className="rounded-3xl border-2 border-teal-50 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-gray-800">배송지 정보</CardTitle>
@@ -160,11 +151,12 @@ export const OrderPage = () => {
               </CardContent>
             </Card>
 
-            {/* 결제 수단 */}
             <Card className="rounded-3xl border-2 border-teal-50 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-gray-800">결제 수단</CardTitle>
-                <CardDescription>원하시는 결제 방식을 선택하세요.</CardDescription>
+                <CardDescription>
+                  원하시는 결제 방식을 선택하세요.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -187,9 +179,7 @@ export const OrderPage = () => {
             </Card>
           </div>
 
-          {/* 오른쪽: 주문 상품 요약 + 최종 결제 */}
           <div className="space-y-4">
-            {/* 주문 상품 리스트 */}
             <Card className="rounded-3xl border-2 border-teal-100 bg-gradient-to-br from-teal-50/60 to-emerald-50/60">
               <CardHeader>
                 <CardTitle className="text-gray-800">주문 상품</CardTitle>
@@ -228,7 +218,6 @@ export const OrderPage = () => {
               </CardContent>
             </Card>
 
-            {/* 결제 요약 */}
             <Card className="rounded-3xl border-2 border-teal-200 shadow-md">
               <CardHeader>
                 <CardTitle className="text-gray-800">결제 금액</CardTitle>
@@ -257,13 +246,14 @@ export const OrderPage = () => {
                 <div className="text-xs text-gray-500 mt-2">
                   주문 버튼 클릭 시, 실제 결제가 이뤄지는 대신
                   <br />
-                  주문 완료 페이지로 이동하거나 알림만 띄우도록 구현할 수 있습니다.
+                  주문 완료 페이지로 이동하거나 알림만 띄우도록 구현할 수
+                  있습니다.
                 </div>
 
                 <Button
                   className="w-full h-14 mt-4 rounded-2xl bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-500 hover:to-emerald-500 text-white shadow-lg hover:shadow-xl transition-all"
                   onClick={() => {
-                    alert("주문이 완료되었습니다! (과제용 더미 동작)");
+                    alert("주문이 완료되었습니다!");
                   }}
                 >
                   {finalAmount.toLocaleString()}원 결제하기
@@ -275,4 +265,4 @@ export const OrderPage = () => {
       </div>
     </div>
   );
-}
+};

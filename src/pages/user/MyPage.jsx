@@ -1,5 +1,3 @@
-// 위치: src/pages/user/MyPage.jsx
-
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
@@ -37,10 +35,6 @@ import {
   Medal,
   Target,
 } from "lucide-react";
-
-// ─────────────────────────────────────────────
-// 로컬 공통 컴포넌트
-// ─────────────────────────────────────────────
 
 function AvatarCircle({ text }) {
   return (
@@ -81,10 +75,6 @@ function SimpleTabs({ tabs, active, onChange }) {
   );
 }
 
-// ─────────────────────────────────────────────
-// MyPage 본문
-// ─────────────────────────────────────────────
-
 export default function MyPage() {
   const navigate = useNavigate();
 
@@ -98,7 +88,7 @@ export default function MyPage() {
   const [userData, setUserData] = useState({
     name: "",
     email: "",
-    address: "서울시 강남구 비건로 123", // 주소는 백엔드에 없으므로 기본값 유지
+    address: "서울시 강남구 비건로 123",
     joinDate: "",
   });
 
@@ -114,13 +104,12 @@ export default function MyPage() {
     confirm: false,
   });
 
-  // CO2 절감량은 useCarbonHistory 훅에서 동적으로 가져옴
   const { totalCO2 } = useCarbonHistory();
 
   const [stats, setStats] = useState({
     totalDays: 0,
     consecutiveDays: 0,
-    carbonSaved: 0, // useCarbonHistory에서 동적으로 가져옴
+    carbonSaved: 0,
     postsCount: 0,
     challengesCompleted: 0,
   });
@@ -156,7 +145,6 @@ export default function MyPage() {
 
   const [activeTab, setActiveTab] = useState("badges");
 
-  // 사용자 프로필 로드
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -177,7 +165,7 @@ export default function MyPage() {
           setUserData({
             name: user.nickname || user.name || "",
             email: user.email || "",
-            address: "서울시 강남구 비건로 123", // 주소는 백엔드에 없으므로 기본값 유지
+            address: "서울시 강남구 비건로 123",
             joinDate: joinDate,
           });
           setEditData({
@@ -190,14 +178,11 @@ export default function MyPage() {
       } catch (error) {
         console.error("프로필 조회 실패:", error);
         
-        // 토큰 만료 체크
         if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
           console.warn("⚠️ 토큰이 만료되었습니다. 자동 로그아웃합니다.");
-          // 토큰 제거 및 로그아웃
           removeToken();
           clearAuth();
           logout();
-          // 로그인 페이지로 리다이렉트
           alert("세션이 만료되었습니다. 다시 로그인해주세요.");
           navigate("/login");
           return;
@@ -213,7 +198,6 @@ export default function MyPage() {
     fetchUserProfile();
   }, [navigate]);
 
-  // 챌린지 통계 로드
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -232,7 +216,6 @@ export default function MyPage() {
         }
       } catch (error) {
         console.error("통계 조회 실패:", error);
-        // 토큰 만료 체크
         if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
           console.warn("⚠️ 통계 조회 중 토큰 만료 감지");
           removeToken();
@@ -250,7 +233,6 @@ export default function MyPage() {
     fetchStats();
   }, []);
 
-  // CO2 절감량이 변경될 때마다 stats 업데이트
   useEffect(() => {
     setStats(prev => ({
       ...prev,
@@ -258,7 +240,6 @@ export default function MyPage() {
     }));
   }, [totalCO2]);
 
-  // 최근 게시글 및 커뮤니티 순위 로드
   useEffect(() => {
     const fetchMyPostsAndRankings = async () => {
       try {
@@ -267,15 +248,12 @@ export default function MyPage() {
         const token = getToken();
         if (!token) return;
 
-        // 모든 게시글을 가져온 후 프론트엔드에서 처리
         const response = await getPosts({ limit: 100 });
         if (response.posts) {
-          // 현재 사용자 ID 가져오기
           let userResponse;
           try {
             userResponse = await getMyProfile(token);
           } catch (error) {
-            // 토큰 만료 체크
             if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
               console.warn("⚠️ 게시글 조회 중 토큰 만료 감지");
               removeToken();
@@ -290,10 +268,9 @@ export default function MyPage() {
           const currentUserId = userResponse?.user?.id;
 
           if (currentUserId) {
-            // 본인 게시글만 필터링하고 최신순으로 정렬
             const myPosts = response.posts
               .filter(post => post.author?.id === currentUserId)
-              .slice(0, 5) // 최근 5개만
+              .slice(0, 5)
               .map(post => ({
                 id: post.id,
                 date: new Date(post.createdAt).toLocaleDateString("ko-KR", { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/\s/g, ''),
@@ -308,8 +285,6 @@ export default function MyPage() {
               postsCount: response.posts.filter(post => post.author?.id === currentUserId).length,
             }));
 
-            // 커뮤니티 순위 계산 (좋아요 순)
-            // 작성자별로 그룹화하고 총 좋아요 수 계산
             const userLikesMap = new Map();
             
             response.posts.forEach(post => {
@@ -320,25 +295,23 @@ export default function MyPage() {
               }
             });
 
-            // Map을 배열로 변환하고 좋아요 수로 정렬
             const rankingsData = Array.from(userLikesMap.entries())
               .map(([userId, totalLikes]) => {
-                // 해당 사용자의 첫 번째 게시글을 찾아서 사용자 정보 가져오기
                 const userPost = response.posts.find(post => post.author?.id === userId);
                 if (!userPost || !userPost.author) return null;
 
                 return {
                   userId: userId,
                   name: userPost.author.nickname || "익명",
-                  region: "강남구", // 기본값 (백엔드에 지역 정보가 없음)
+                  region: "강남구",
                   score: totalLikes,
                   avatar: userPost.author.profileImage || userPost.author.nickname?.charAt(0) || "?",
                   isMe: userId === currentUserId,
                 };
               })
               .filter(item => item !== null)
-              .sort((a, b) => b.score - a.score) // 좋아요 수 내림차순 정렬
-              .slice(0, 5) // 상위 5명만
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 5)
               .map((item, index) => ({
                 ...item,
                 rank: index + 1,
@@ -349,7 +322,6 @@ export default function MyPage() {
         }
       } catch (error) {
         console.error("게시글 조회 실패:", error);
-        // 토큰 만료 체크
         if (error.message && (error.message.includes("Token expired") || error.message.includes("401"))) {
           console.warn("⚠️ 게시글 조회 중 토큰 만료 감지");
           removeToken();
@@ -377,7 +349,6 @@ export default function MyPage() {
         return;
       }
 
-      // 백엔드에 업데이트
       const updateData = {
         nickname: editData.name,
       };
@@ -403,7 +374,6 @@ export default function MyPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* 헤더 */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
@@ -413,7 +383,6 @@ export default function MyPage() {
             </div>
           </div>
 
-          {/* 프로필 카드 */}
           <Card className="border-0 shadow-lg shadow-teal-100/50 rounded-3xl overflow-hidden mb-8">
             <div className="h-32 bg-gradient-to-r from-teal-400 to-emerald-400" />
             <CardContent className="relative pt-0 pb-8 px-8">
@@ -523,7 +492,6 @@ export default function MyPage() {
                           animate={{ opacity: 1, height: "auto" }}
                           className="space-y-4 pt-4 border-t-2 border-gray-100"
                         >
-                          {/* 현재 비밀번호 */}
                           <div className="space-y-2">
                             <Label>현재 비밀번호</Label>
                             <div className="relative">
@@ -548,7 +516,6 @@ export default function MyPage() {
                             </div>
                           </div>
 
-                          {/* 새 비밀번호 */}
                           <div className="space-y-2">
                             <Label>새 비밀번호</Label>
                             <div className="relative">
@@ -573,7 +540,6 @@ export default function MyPage() {
                             </div>
                           </div>
 
-                          {/* 새 비밀번호 확인 */}
                           <div className="space-y-2">
                             <Label>새 비밀번호 확인</Label>
                             <div className="relative">
@@ -613,7 +579,6 @@ export default function MyPage() {
             </CardContent>
           </Card>
 
-          {/* 통계 카드 */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
             {[
               { label: "총 챌린지 일수", value: statsLoading ? "..." : stats.totalDays, icon: Calendar, color: "from-blue-400 to-cyan-400" },
@@ -641,7 +606,6 @@ export default function MyPage() {
             ))}
           </div>
 
-          {/* 탭 */}
           <SimpleTabs
             tabs={[
               { value: "badges", label: "획득 뱃지", icon: Trophy },
@@ -652,9 +616,7 @@ export default function MyPage() {
             onChange={setActiveTab}
           />
 
-          {/* 탭 콘텐츠 */}
           <div className="mt-6 space-y-6">
-            {/* 1) 뱃지 */}
             {activeTab === "badges" && (
               <Card className="border-0 shadow-lg shadow-teal-100/50 rounded-3xl">
                 <CardHeader>
@@ -698,7 +660,6 @@ export default function MyPage() {
               </Card>
             )}
 
-            {/* 2) 지역 순위 */}
             {activeTab === "ranking" && (
               <Card className="border-0 shadow-lg shadow-teal-100/50 rounded-3xl">
                 <CardHeader>
@@ -769,7 +730,6 @@ export default function MyPage() {
               </Card>
             )}
 
-            {/* 3) 최근 활동 */}
             {activeTab === "posts" && (
               <Card className="border-0 shadow-lg shadow-teal-100/50 rounded-3xl">
                 <CardHeader>
@@ -790,24 +750,24 @@ export default function MyPage() {
                   ) : (
                     <div className="space-y-3">
                       {recentPosts.map((post, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="p-5 rounded-2xl bg-gradient-to-r from-teal-50/50 to-emerald-50/50 hover:shadow-md transition-shadow border border-teal-100"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h4 className="text-gray-800 mb-2">{post.title}</h4>
-                            <p className="text-sm text-gray-500">{post.date}</p>
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.1 }}
+                          className="p-5 rounded-2xl bg-gradient-to-r from-teal-50/50 to-emerald-50/50 hover:shadow-md transition-shadow border border-teal-100"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <h4 className="text-gray-800 mb-2">{post.title}</h4>
+                              <p className="text-sm text-gray-500">{post.date}</p>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <span className="flex items-center gap-1">❤️ {post.likes}</span>
+                              <span className="flex items-center gap-1">💬 {post.comments}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            <span className="flex items-center gap-1">❤️ {post.likes}</span>
-                            <span className="flex items-center gap-1">💬 {post.comments}</span>
-                          </div>
-                        </div>
-                      </motion.div>
+                        </motion.div>
                       ))}
                     </div>
                   )}

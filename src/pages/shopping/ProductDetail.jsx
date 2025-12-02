@@ -1,5 +1,3 @@
-// 위치: src/pages/shopping/ProductDetail.jsx
-
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PRODUCTS } from "../../data/products";
@@ -10,25 +8,19 @@ import { useCart } from "../../context/CartContext.jsx";
 function ProductDetail() {
     const { productId } = useParams();
     const navigate = useNavigate();
-
-    // CartContext에서 장바구니 함수 가져오기
     const { addToCart } = useCart();
-
-    // URL의 :productId로 상품 찾기
     const product = PRODUCTS.find(
         (p) => String(p.id) === String(productId)
     );
 
     const [quantity, setQuantity] = useState(1);
-
-    // 팝업 표시 여부
     const [showPopup, setShowPopup] = useState(false);
 
     const handleBuyNow = () => {
         if (!product) return;
 
         const totalPrice = product.price * quantity;
-        const shippingFee = totalPrice >= 30000 ? 0 : 3000;   // 과제용: 3만원 이상 무료, 아니면 3,000원
+        const shippingFee = totalPrice >= 30000 ? 0 : 3000;   
         const finalAmount = totalPrice + shippingFee;
 
         navigate("/order", {
@@ -67,19 +59,14 @@ function ProductDetail() {
         );
     }
 
-    // ✅ 장바구니에 실제로 담기 + 팝업 열기
     const handleAddToCart = () => {
-        // 1) 전역 장바구니에 추가
         addToCart(product, quantity);
-
-        // 2) 예/아니요 팝업 열기
         setShowPopup(true);
     };
 
     return (
         <div className="min-h-screen bg-white py-10 px-4 animate-fadeIn">
             <div className="max-w-5xl mx-auto">
-                {/* 상단 뒤로가기 */}
                 <div className="flex items-center justify-between mb-6">
                     <h1 className="text-3xl font-semibold text-gray-800">
                         상품 상세
@@ -109,7 +96,6 @@ function ProductDetail() {
                             </span>
                         </div>
 
-                        {/* 정보 영역 */}
                         <div className="space-y-5">
                             <div>
                                 <h2 className="text-2xl font-semibold text-gray-800 mb-2">
@@ -129,7 +115,6 @@ function ProductDetail() {
                                 <p>배송: 3만원 이상 무료배송</p>
                             </div>
 
-                            {/* 수량 선택 + 버튼들 */}
                             <div className="space-y-3">
                                 <div className="flex items-center gap-3">
                                     <span className="text-gray-700 text-sm">
@@ -181,8 +166,6 @@ function ProductDetail() {
                     </CardContent>
                 </Card>
             </div>
-
-            {/* ✅ 예 / 아니요 팝업 UI */}
             {showPopup && (
                 <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
                     <div className="bg-white rounded-2xl p-6 shadow-xl w-72 text-center">
@@ -197,13 +180,13 @@ function ProductDetail() {
                                 onClick={() => {
                                     setShowPopup(false)
                                     navigate("/store");
-                                }} // 아니요
+                                }} 
                             >
                                 아니요
                             </button>
                             <button
                                 className="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white"
-                                onClick={() => navigate("/cart")} // 예
+                                onClick={() => navigate("/cart")} 
                             >
                                 예
                             </button>

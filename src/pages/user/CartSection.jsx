@@ -1,5 +1,3 @@
-// 위치: src/pages/user/CartSection.jsx
-
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 
@@ -14,10 +12,8 @@ import { Button } from "../../components/ui/button";
 
 import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
 
-// ✅ 전역 장바구니 context 사용
 import { useCart } from "../../context/CartContext.jsx";
 
-// 작은 pill 스타일 뱃지
 function PillBadge({ children, className = "" }) {
     return (
         <span
@@ -29,13 +25,11 @@ function PillBadge({ children, className = "" }) {
 }
 
 export default function CartSection({ navigate }) {
-    // ✅ 전역 장바구니에서 cartItems / 수량변경 / 삭제 함수 가져오기
+    
     const { cartItems, updateQuantity, removeFromCart } = useCart();
 
-    // 선택된 상품 id만 따로 관리 (체크박스)
     const [selectedItems, setSelectedItems] = useState([]);
 
-    // ✅ 장바구니가 바뀔 때마다 기본으로 “전체 선택” 상태로 맞추기
     useEffect(() => {
         if (cartItems.length > 0) {
             setSelectedItems(cartItems.map((item) => item.id));
@@ -44,11 +38,9 @@ export default function CartSection({ navigate }) {
         }
     }, [cartItems]);
 
-    // ✅ 주문하기 버튼 눌렀을 때
     const handleOrder = () => {
         if (!navigate || selectedItems.length === 0) return;
 
-        // 선택된 상품들만 골라내기
         const selectedCartItems = cartItems.filter((item) =>
             selectedItems.includes(item.id)
         );
@@ -84,9 +76,7 @@ export default function CartSection({ navigate }) {
     };
 
     const removeSelectedItems = () => {
-        // ✅ 전역 장바구니에서도 삭제
         selectedItems.forEach((id) => removeFromCart(id));
-        // selectedItems는 위 useEffect에서 cartItems 변경되면 다시 맞춰짐
     };
 
     const getTotalPrice = () => {
