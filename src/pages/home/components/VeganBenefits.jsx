@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Progress } from "../ui/progress";
@@ -61,6 +62,9 @@ const lifestyleBenefits = [
 ];
 
 export function VeganBenefits() {
+
+  const navigate = useNavigate();
+
   return (
     <section className="py-24 relative overflow-hidden">
       {/* Animated background elements */}
@@ -284,7 +288,11 @@ export function VeganBenefits() {
               30일 챌린지를 통해 이 모든 혜택을 직접 경험해보세요.
               전문가의 가이드와 함께라면 더욱 쉽고 안전합니다.
             </p>
-            <Button size="lg" className="bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xl shadow-emerald-200 hover:shadow-2xl transition-all duration-300 rounded-2xl px-8">
+            <Button
+              size="lg"
+              onClick={() => navigate("/challenge/main")}
+              className="pointer-events-auto bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xl shadow-emerald-200 hover:shadow-2xl transition-all duration-300 rounded-2xl px-8"
+            >
               <Heart className="w-5 h-5 mr-2" />
               나의 건강 여정 시작하기
             </Button>
