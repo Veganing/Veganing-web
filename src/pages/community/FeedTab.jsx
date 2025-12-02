@@ -17,27 +17,24 @@ const FeedTab = ({
     goToChallenge,
     popularHashtags,
     onCreatePost,
-    onPostUpdate, // 게시글 업데이트 콜백
-    onPostDelete, // 게시글 삭제 콜백
+    onPostUpdate,
+    onPostDelete,
 }) => {
-    const [likingPosts, setLikingPosts] = useState(new Set()); // 좋아요 중인 게시글 ID들
-    const [likedPosts, setLikedPosts] = useState(new Set()); // 좋아요한 게시글 ID들 (중복 방지용)
-    const [expandedComments, setExpandedComments] = useState(new Set()); // 댓글 목록이 열린 게시글 ID들
-    const [comments, setComments] = useState({}); // { postId: [comments] }
-    const [commentsLoading, setCommentsLoading] = useState({}); // { postId: true/false }
-    const [commentTexts, setCommentTexts] = useState({}); // { postId: "text" }
-    const [submittingComments, setSubmittingComments] = useState(new Set()); // 댓글 작성 중인 게시글 ID들
+    const [likingPosts, setLikingPosts] = useState(new Set());
+    const [likedPosts, setLikedPosts] = useState(new Set());
+    const [expandedComments, setExpandedComments] = useState(new Set());
+    const [comments, setComments] = useState({});
+    const [commentsLoading, setCommentsLoading] = useState({});
+    const [commentTexts, setCommentTexts] = useState({});
+    const [submittingComments, setSubmittingComments] = useState(new Set());
 
-    // 좋아요 토글 핸들러
     const handleLike = async (postId, currentLikes) => {
-        // 로그인 확인
         const token = getToken();
         if (!token) {
             alert("로그인이 필요합니다.");
             return;
         }
 
-        // 이미 좋아요 중이면 무시
         if (likingPosts.has(postId)) {
             return;
         }
@@ -46,48 +43,34 @@ const FeedTab = ({
 
         try {
             setLikingPosts(prev => new Set(prev).add(postId));
-
-            // 좋아요 상태 토글
             if (isLiked) {
-                // 좋아요 취소 (프론트엔드에서만 처리)
                 setLikedPosts(prev => {
                     const next = new Set(prev);
                     next.delete(postId);
                     return next;
                 });
 
-                // 낙관적 업데이트
                 if (onPostUpdate) {
                     onPostUpdate(postId, { likes: Math.max(0, currentLikes - 1) });
                 }
 
-                // TODO: 백엔드에 좋아요 취소 API가 추가되면 여기서 호출
-                // 현재는 프론트엔드에서만 상태 관리
-
             } else {
-                // 좋아요 추가
+
                 setLikedPosts(prev => new Set(prev).add(postId));
 
-                // 백엔드에 좋아요 요청 (낙관적 업데이트 없이 백엔드 응답만 사용)
                 const response = await likePost(postId, token);
 
-                // 백엔드 응답으로 실제 좋아요 수 업데이트
                 if (onPostUpdate && response.likes !== undefined) {
                     onPostUpdate(postId, { likes: response.likes });
                 } else if (onPostUpdate) {
-                    // 응답에 likes가 없으면 낙관적 업데이트로 +1
                     onPostUpdate(postId, { likes: currentLikes + 1 });
                 }
             }
         } catch (error) {
             console.error("좋아요 처리 실패:", error);
-
-            // 실패 시 이전 상태로 되돌리기
             if (isLiked) {
-                // 좋아요 취소 실패 시 다시 좋아요 상태로
                 setLikedPosts(prev => new Set(prev).add(postId));
             } else {
-                // 좋아요 추가 실패 시 좋아요 상태 제거
                 setLikedPosts(prev => {
                     const next = new Set(prev);
                     next.delete(postId);
@@ -95,7 +78,6 @@ const FeedTab = ({
                 });
             }
 
-            // 원래 값으로 복구
             if (onPostUpdate) {
                 onPostUpdate(postId, { likes: currentLikes });
             }
@@ -110,22 +92,17 @@ const FeedTab = ({
         }
     };
 
-    // 댓글 목록 토글 핸들러
     const handleToggleComments = async (postId) => {
         const isExpanded = expandedComments.has(postId);
 
         if (isExpanded) {
-            // 댓글 닫기
             setExpandedComments(prev => {
                 const next = new Set(prev);
                 next.delete(postId);
                 return next;
             });
         } else {
-            // 댓글 열기
             setExpandedComments(prev => new Set(prev).add(postId));
-
-            // 댓글이 아직 로드되지 않았다면 로드
             if (!comments[postId]) {
                 try {
                     setCommentsLoading(prev => ({ ...prev, [postId]: true }));
@@ -147,7 +124,6 @@ const FeedTab = ({
         }
     };
 
-    // 댓글 작성 핸들러
     const handleSubmitComment = async (postId) => {
         const token = getToken();
         if (!token) {
@@ -166,20 +142,15 @@ const FeedTab = ({
 
             const response = await createComment(postId, { content: content.trim() }, token);
 
-            // 댓글 목록에 추가
             if (response.comment) {
                 setComments(prev => ({
                     ...prev,
                     [postId]: [...(prev[postId] || []), response.comment]
                 }));
-
-                // 댓글 수 업데이트
                 if (onPostUpdate) {
                     const currentCount = feedPosts.find(p => p.id === postId)?.comments || 0;
                     onPostUpdate(postId, { comments: currentCount + 1 });
                 }
-
-                // 입력 필드 초기화
                 setCommentTexts(prev => ({ ...prev, [postId]: "" }));
             }
         } catch (error) {
@@ -193,8 +164,6 @@ const FeedTab = ({
             });
         }
     };
-
-    // 댓글 삭제 핸들러
     const handleDeleteComment = async (commentId, postId) => {
         if (!confirm("댓글을 삭제하시겠습니까?")) {
             return;
@@ -209,13 +178,11 @@ const FeedTab = ({
         try {
             await deleteComment(commentId, token);
 
-            // 댓글 목록에서 제거
             setComments(prev => ({
                 ...prev,
                 [postId]: (prev[postId] || []).filter(c => c.id !== commentId)
             }));
 
-            // 댓글 수 업데이트
             if (onPostUpdate) {
                 const currentCount = feedPosts.find(p => p.id === postId)?.comments || 0;
                 onPostUpdate(postId, { comments: Math.max(0, currentCount - 1) });
@@ -226,7 +193,6 @@ const FeedTab = ({
         }
     };
 
-    // 게시글 삭제 핸들러
     const handleDeletePost = async (postId) => {
         if (!confirm("게시글을 삭제하시겠습니까?")) {
             return;
@@ -240,12 +206,10 @@ const FeedTab = ({
 
         try {
             await deletePost(postId, token);
-            
-            // 게시글 목록에서 제거
             if (onPostDelete) {
                 onPostDelete(postId);
             }
-            
+
             alert("게시글이 삭제되었습니다.");
         } catch (error) {
             console.error("게시글 삭제 실패:", error);
@@ -253,7 +217,6 @@ const FeedTab = ({
         }
     };
 
-    // 현재 로그인한 사용자 ID 가져오기
     const getCurrentUserId = () => {
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -263,7 +226,6 @@ const FeedTab = ({
         }
     };
 
-    // 시간 변환 헬퍼 함수
     const formatTimeAgo = (dateString) => {
         if (!dateString) return "방금 전";
 
@@ -397,8 +359,8 @@ const FeedTab = ({
                                 <Button
                                     variant="ghost"
                                     className={`h-auto p-0 flex items-center gap-2 ${likedPosts.has(post.id)
-                                            ? 'text-[#e60076]'
-                                            : 'text-[#495565] hover:text-[#e60076]'
+                                        ? 'text-[#e60076]'
+                                        : 'text-[#495565] hover:text-[#e60076]'
                                         } transition-colors`}
                                     onClick={() => handleLike(post.id, post.likes)}
                                     disabled={likingPosts.has(post.id) || !isLoggedIn}
@@ -415,8 +377,8 @@ const FeedTab = ({
                                 <Button
                                     variant="ghost"
                                     className={`h-auto p-0 flex items-center gap-2 ${expandedComments.has(post.id)
-                                            ? 'text-[#00a63e]'
-                                            : 'text-[#495565] hover:text-[#00a63e]'
+                                        ? 'text-[#00a63e]'
+                                        : 'text-[#495565] hover:text-[#00a63e]'
                                         } transition-colors cursor-pointer`}
                                     onClick={() => handleToggleComments(post.id)}
                                 >
@@ -593,7 +555,7 @@ const FeedTab = ({
 
                                 <div className="flex items-center justify-center gap-4 text-sm">
                                     <span className="[font-family:'Nunito',Helvetica] font-normal text-[#00a63e]">
-                                        ⭐ {currentChallenge.points || 0}포인트
+                                        {currentChallenge.points || 0}포인트
                                     </span>
                                     <span className="[font-family:'Nunito',Helvetica] font-normal text-[#495565]">
                                         난이도:{" "}
