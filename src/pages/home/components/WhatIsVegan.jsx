@@ -24,7 +24,7 @@ const veganPrinciples = [
 export default function WhatIsVegan() {
     return (
         <section className="py-24 relative overflow-hidden">
-            {/* Background decorative elements */}
+            { }
             <motion.div
                 className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-emerald-200 to-cyan-200 rounded-full blur-3xl opacity-40"
                 animate={{
@@ -91,7 +91,7 @@ export default function WhatIsVegan() {
                                 />
                             </motion.div>
 
-                            {/* Floating info card */}
+                            { }
                             <motion.div
                                 className="absolute -top-6 -right-6 z-10"
                                 initial={{ opacity: 0, scale: 0.8 }}
@@ -168,7 +168,7 @@ export default function WhatIsVegan() {
                     </motion.div>
                 </div>
 
-                {/* Statistics section */}
+                { }
                 <motion.div
                     className="bg-white/70 backdrop-blur-lg rounded-[3rem] p-12 shadow-2xl ring-4 ring-white/50"
                     initial={{ opacity: 0, y: 50 }}
