@@ -1,11 +1,6 @@
 function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, onUploadComplete }) {
 
     const handleUpload = () => {
-        console.log("🔵 handleUpload 호출됨");
-        console.log("🔵 output:", output ? "있음" : "없음");
-        console.log("🔵 currentImage:", currentImage ? "있음" : "없음");
-        console.log("🔵 window.addMealToIndex:", typeof window.addMealToIndex);
-        
         if (!output) {
             alert("분석 결과가 없습니다. 먼저 식단을 분석해주세요.");
             return;
@@ -17,37 +12,26 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
         }
 
         if (typeof window.addMealToIndex !== 'function') {
-            console.error("❌ window.addMealToIndex가 함수가 아닙니다:", window.addMealToIndex);
             alert("식단 저장 기능을 사용할 수 없습니다. 페이지를 새로고침해주세요.");
             return;
         }
 
         try {
-            // 업로드 버튼으로 저장할 때는 레시피 데이터를 저장하지 않음
-            // 전체 저장 시에만 추천 레시피가 생성됨
+            // 개별 업로드 시에는 추천 레시피 저장하지 않음 (전체 저장 시에만 생성됨)
             const mealData = {
                 image: currentImage,
                 description: currentDescription || '',
                 analysis: output,
-                recommendedRecipe: null, // 개별 업로드 시에는 레시피 저장하지 않음
+                recommendedRecipe: null,
                 ingredients: null,
                 carbonFootprint: null
             };
             
-            console.log("🔵 저장할 식단 데이터:", mealData);
-            const result = window.addMealToIndex(mealData);
-            console.log("✅ 식단 저장 완료:", result);
-            
-            // localStorage에 저장되었는지 확인
-            setTimeout(() => {
-                const storedMeals = localStorage.getItem('challenge_meal_index_state');
-                console.log("🔵 localStorage 확인:", storedMeals ? JSON.parse(storedMeals).length + "개 식단 저장됨" : "저장된 식단 없음");
-            }, 100);
-            
+            window.addMealToIndex(mealData);
             alert("식단이 저장되었습니다!");
             onUploadComplete();
         } catch (error) {
-            console.error("❌ 식단 저장 중 오류:", error);
+            console.error("식단 저장 중 오류:", error);
             alert("식단 저장 중 오류가 발생했습니다: " + error.message);
         }
     };
@@ -56,12 +40,12 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
     const parseAnalysis = (text) => {
         if (!text) return null;
 
-        // 음식 정보
+        // 음식 정보 추출
         const foodMatch = text.match(/음식명:\s*([^\n]+)/);
         const weightMatch = text.match(/예상 중량:\s*([^\n]+)/);
         const ingredientsMatch = text.match(/주요 재료:\s*([^\n]+)/);
 
-        // 영양성분
+        // 영양성분 추출
         const caloriesMatch = text.match(/칼로리:\s*([^\n]+)/);
         const carbsMatch = text.match(/탄수화물:\s*([^\n]+)/);
         const proteinMatch = text.match(/단백질:\s*([^\n]+)/);
@@ -69,18 +53,14 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
         const fiberMatch = text.match(/식이섬유:\s*([^\n]+)/);
         const sodiumMatch = text.match(/나트륨:\s*([^\n]+)/);
 
-        // 비건 분석
+        // 비건 분석 추출
         const veganMatch = text.match(/비건 친화도:\s*([^\n]+)/);
         const animalMatch = text.match(/확인된 동물성 재료:\s*([^\n]+)/);
         const hiddenMatch = text.match(/⚠️ 숨어있을 가능성:\s*([^\n]+)/);
 
-        // 비건 대체 제안 (수정)
+        // 기타 정보 추출
         const alternativeMatch = text.match(/💡 \*\*비건 대체 제안\*\*\s*\n([^\n⚠️✨]+)/);
-
-        // 주의사항
         const cautionMatch = text.match(/⚠️ \*\*주의사항\*\*\s*\n([\s\S]*?)(?=✨|$)/);
-
-        // 건강 조언
         const adviceMatch = text.match(/✨ \*\*건강 조언\*\*\s*\n([^\n]+)/);
 
         return {
@@ -110,6 +90,16 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
 
     const analysis = parseAnalysis(output);
 
+    // 영양성분 항목들 (값이 있는 것만 표시)
+    const nutritionItems = analysis?.nutrition ? [
+        { label: '칼로리', value: analysis.nutrition.calories, colorClass: 'orange' },
+        { label: '탄수화물', value: analysis.nutrition.carbs, colorClass: 'yellow' },
+        { label: '단백질', value: analysis.nutrition.protein, colorClass: 'red' },
+        { label: '지방', value: analysis.nutrition.fat, colorClass: 'purple' },
+        { label: '식이섬유', value: analysis.nutrition.fiber, colorClass: 'green' },
+        { label: '나트륨', value: analysis.nutrition.sodium, colorClass: 'gray' },
+    ].filter(item => item.value) : [];
+
     return (
         <div className="w-full bg-white/90 rounded-[48px] shadow-2xl p-6 flex flex-col gap-4 h-[666px]" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             <div className="flex items-center justify-between flex-shrink-0">
@@ -122,20 +112,24 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
                     </span>
                 </div>
 
+                {/* 업로드 버튼 */}
                 <button
                     onClick={handleUpload}
                     disabled={!output}
-                    className={`px-4 py-2 rounded-2xl text-sm font-medium font-['Nunito'] transition-colors ${output
+                    className={`px-4 py-2 rounded-2xl text-sm font-medium font-['Nunito'] transition-colors ${
+                        output
                             ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
+                    }`}
                 >
                     업로드
                 </button>
             </div>
 
+            {/* 분석 결과 표시 영역 */}
             <div className="flex-1 bg-gray-50 rounded-3xl p-4 overflow-y-auto">
                 {isAnalyzing ? (
+                    // 분석 중
                     <div className="flex flex-col items-center justify-center h-full gap-4">
                         <div className="w-12 h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
                         <p className="text-sm font-['Nunito'] text-gray-500">
@@ -143,6 +137,7 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
                         </p>
                     </div>
                 ) : analysis ? (
+                    // 분석 완료
                     <div className="space-y-3">
                         {/* 음식 정보 */}
                         {analysis.food.name && (
@@ -159,49 +154,19 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
                         )}
 
                         {/* 영양성분 */}
-                        {analysis.nutrition.calories && (
+                        {nutritionItems.length > 0 && (
                             <div className="bg-white rounded-2xl p-4 border border-emerald-100">
                                 <div className="flex items-center gap-2 mb-3">
                                     <span className="text-xl">📊</span>
                                     <h4 className="font-semibold text-gray-900">영양성분</h4>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 text-sm">
-                                    {analysis.nutrition.calories && (
-                                        <div className="flex justify-between p-2 bg-orange-50 rounded-lg">
-                                            <span className="text-gray-700">칼로리</span>
-                                            <span className="font-semibold text-orange-700">{analysis.nutrition.calories}</span>
+                                    {nutritionItems.map((item) => (
+                                        <div key={item.label} className={`flex justify-between p-2 bg-${item.colorClass}-50 rounded-lg`}>
+                                            <span className="text-gray-700">{item.label}</span>
+                                            <span className={`font-semibold text-${item.colorClass}-700`}>{item.value}</span>
                                         </div>
-                                    )}
-                                    {analysis.nutrition.carbs && (
-                                        <div className="flex justify-between p-2 bg-yellow-50 rounded-lg">
-                                            <span className="text-gray-700">탄수화물</span>
-                                            <span className="font-semibold text-yellow-700">{analysis.nutrition.carbs}</span>
-                                        </div>
-                                    )}
-                                    {analysis.nutrition.protein && (
-                                        <div className="flex justify-between p-2 bg-red-50 rounded-lg">
-                                            <span className="text-gray-700">단백질</span>
-                                            <span className="font-semibold text-red-700">{analysis.nutrition.protein}</span>
-                                        </div>
-                                    )}
-                                    {analysis.nutrition.fat && (
-                                        <div className="flex justify-between p-2 bg-purple-50 rounded-lg">
-                                            <span className="text-gray-700">지방</span>
-                                            <span className="font-semibold text-purple-700">{analysis.nutrition.fat}</span>
-                                        </div>
-                                    )}
-                                    {analysis.nutrition.fiber && (
-                                        <div className="flex justify-between p-2 bg-green-50 rounded-lg">
-                                            <span className="text-gray-700">식이섬유</span>
-                                            <span className="font-semibold text-green-700">{analysis.nutrition.fiber}</span>
-                                        </div>
-                                    )}
-                                    {analysis.nutrition.sodium && (
-                                        <div className="flex justify-between p-2 bg-gray-100 rounded-lg">
-                                            <span className="text-gray-700">나트륨</span>
-                                            <span className="font-semibold text-gray-700">{analysis.nutrition.sodium}</span>
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -260,9 +225,9 @@ function LLMAnalysis({ output, isAnalyzing, currentImage, currentDescription, on
                                 </div>
                             </div>
                         )}
-
                     </div>
                 ) : (
+                    // 분석 전
                     <p className="text-sm font-['Nunito'] text-gray-500 text-center">
                         식단 사진을 업로드하고 영양 분석하기 버튼을 눌러주세요.
                     </p>

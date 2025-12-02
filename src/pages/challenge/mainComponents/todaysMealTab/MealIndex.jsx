@@ -10,7 +10,7 @@ function MealIndex({ onMealsCountChange }) {
         }
     };
 
-    // mealsCount 변경 감지
+    // 식단 개수가 변경되면 부모 컴포넌트에 알림
     useEffect(() => {
         onMealsCountChange?.(meals.length);
     }, [meals.length, onMealsCountChange]);
@@ -26,6 +26,7 @@ function MealIndex({ onMealsCountChange }) {
                 </span>
             </div>
 
+            {/* 가로 스크롤 가능한 식단 목록 */}
             <div className="flex-1 overflow-x-auto overflow-y-hidden">
                 <div className="flex gap-2 h-full">
                     {meals.length > 0 ? (
@@ -39,6 +40,7 @@ function MealIndex({ onMealsCountChange }) {
                                     alt="식단"
                                     className="w-full h-full object-cover"
                                 />
+                                {/* 호버시 나타나는 삭제 버튼 */}
                                 <button
                                     onClick={() => handleDelete(meal.id)}
                                     className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600 text-lg"

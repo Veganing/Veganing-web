@@ -5,6 +5,7 @@ import mapMaker from '../../../assets/resMap/map.svg';
 export default function MapComponent() {
     const { restaurants, selectedRestaurant, handleSelectRestaurant } = useRestaurantData();
 
+    // 찜하기 아이콘 컴포넌트
     const HeartIcon = ({ filled }) => (
         <svg className="w-5 h-5" viewBox="0 0 20 20" fill={filled ? "currentColor" : "none"}>
             <path
@@ -17,7 +18,6 @@ export default function MapComponent() {
 
     return (
         <div className="w-full flex gap-6 from-green-150 to-gray-50 min-h-screen">
-            {/* 지도 영역 */}
             <div className="w-[650px] h-[800px] bg-white rounded-2xl p-6 flex-shrink-0 shadow-xl">
                 <div className="flex items-center gap-2 mb-6">
                     <div className="w-8 h-8 flex items-center justify-center">
@@ -32,7 +32,6 @@ export default function MapComponent() {
                     </h2>
                 </div>
 
-                {/* 지도 */}
                 <div
                     className="relative w-full h-[690px] rounded-xl overflow-hidden border-2 border-green-100"
                     style={{
@@ -43,7 +42,6 @@ export default function MapComponent() {
                 >
                     <div className="absolute inset-0 bg-white/10" />
 
-                    {/* 마커들 */}
                     {restaurants.map((restaurant) => (
                         <div
                             key={restaurant.id}
@@ -51,7 +49,7 @@ export default function MapComponent() {
                             style={{
                                 left: `${restaurant.position.x}px`,
                                 top: `${restaurant.position.y}px`,
-                                transform: 'translate(-50%, -50%)'
+                                transform: 'translate(-50%, -50%)' // 마커 중앙 정렬
                             }}
                             onClick={() => handleSelectRestaurant(restaurant.id)}
                         >
@@ -65,7 +63,7 @@ export default function MapComponent() {
                                 }`}
                             />
 
-                            {/* 툴팁 */}
+                            {/* 마커 호버 시 식당명 툴팁 */}
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                                 <div className="bg-gray-900 text-white text-xs font-['Nunito'] px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
                                     {restaurant.name}
@@ -77,16 +75,13 @@ export default function MapComponent() {
                 </div>
             </div>
 
-            {/* 오른쪽 영역 */}
             <div className="flex flex-col gap-4 flex-1 h-[800px]">
-                {/* Hero */}
                 <div className="h-14 bg-white rounded-2xl shadow-lg flex items-center justify-start px-6 flex-shrink-0">
                     <span className="text-green-600 text-lg font-bold font-['Nunito']">
                         내 주변 비건 식당
                     </span>
                 </div>
 
-                {/* 식당 리스트 */}
                 <div className="bg-white rounded-2xl border border-green-100 p-6 flex-1 shadow-xl overflow-y-auto min-h-0">
                     <div className="space-y-3">
                         {restaurants.map((restaurant) => (
@@ -95,11 +90,10 @@ export default function MapComponent() {
                                 onClick={() => handleSelectRestaurant(restaurant.id)}
                                 className={`flex gap-4 p-4 rounded-xl transition-all cursor-pointer ${
                                     selectedRestaurant === restaurant.id
-                                        ? 'bg-green-50 border-2 border-green-400 shadow-md'
+                                        ? 'bg-green-50 border-2 border-green-400 shadow-md' // 선택된 식당 하이라이트
                                         : 'bg-gray-50 border-2 border-transparent hover:bg-green-50 hover:border-green-200 hover:shadow-md'
                                 }`}
                             >
-                                {/* 식당 이미지 */}
                                 <div className="w-24 h-24 rounded-xl flex-shrink-0 overflow-hidden">
                                     <img 
                                         src={restaurant.image} 
@@ -108,7 +102,6 @@ export default function MapComponent() {
                                     />
                                 </div>
 
-                                {/* 식당 정보 */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-2 mb-1.5">
                                         <div>
@@ -124,7 +117,6 @@ export default function MapComponent() {
                                         </button>
                                     </div>
 
-                                    {/* 평점 및 정보 */}
                                     <div className="flex items-center gap-2 mb-2">
                                         <div className="flex items-center gap-1">
                                             <span className="text-yellow-500 text-base">★</span>
@@ -145,7 +137,6 @@ export default function MapComponent() {
                                         </span>
                                     </div>
 
-                                    {/* 태그 */}
                                     <div className="flex flex-wrap gap-1.5 mb-2">
                                         {restaurant.tags.map((tag, idx) => (
                                             <span
@@ -157,7 +148,6 @@ export default function MapComponent() {
                                         ))}
                                     </div>
 
-                                    {/* 설명 */}
                                     <p className="text-gray-600 text-sm font-['Nunito'] leading-relaxed">
                                         {restaurant.description}
                                     </p>

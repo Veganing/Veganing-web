@@ -1,15 +1,21 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { analyzeMealWithLLM, fileToDataUrl } from "../../../../api/openai";
 
-const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsAnalyzing, setCurrentImage, setCurrentDescription, resetTrigger }) {
+const MealUploadCard = memo(function MealUploadCard({ 
+    onAnalysisComplete, 
+    setIsAnalyzing, 
+    setCurrentImage, 
+    setCurrentDescription, 
+    resetTrigger 
+}) {
     const [selectedImage, setSelectedImage] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
-    const [imageUrl, setImageUrl] = useState(''); // URL 입력 추가
+    const [imageUrl, setImageUrl] = useState(''); // URL 직접 입력
     const [description, setDescription] = useState('');
     const [imageLoading, setImageLoading] = useState(false);
     const fileInputRef = useRef(null);
 
-    // resetTrigger가 변경되면 초기화
+    // resetTrigger 변경시 전체 초기화
     useEffect(() => {
         if (resetTrigger > 0) {
             setSelectedImage(null);
@@ -24,7 +30,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
         }
     }, [resetTrigger, setCurrentImage, setCurrentDescription]);
 
-    // imageUrl이 변경되면 이미지 설정
+    // URL 입력시 자동으로 이미지 설정
     useEffect(() => {
         if (imageUrl && imageUrl.trim()) {
             setSelectedImage(imageUrl);
@@ -32,15 +38,10 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
         }
     }, [imageUrl, setCurrentImage]);
 
-    // 이미지 업로드 핸들러 (커뮤니티처럼 단순하게)
+    // 파일 선택 핸들러
     const handleImageChange = (e) => {
         const file = e.target.files?.[0];
-        if (!file) {
-            console.warn("⚠️ 파일이 선택되지 않았습니다.");
-            return;
-        }
-
-        console.log("📷 파일 선택됨:", file.name, file.type, file.size);
+        if (!file) return;
 
         // 이미지 파일인지 확인
         if (!file.type.startsWith('image/')) {
@@ -59,21 +60,15 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
         setImageLoading(true);
         setSelectedFile(file);
 
-        // 미리보기 생성 (커뮤니티처럼)
+        // 미리보기 생성
         const reader = new FileReader();
         reader.onloadend = () => {
-            const dataUrl = reader.result;
-            console.log("✅ 이미지 로드 성공!");
-
-            setSelectedImage(dataUrl);
-            setCurrentImage(dataUrl);
+            setSelectedImage(reader.result);
+            setCurrentImage(reader.result);
             setImageLoading(false);
-
-            console.log("✅✅✅ 상태 업데이트 완료 - 이미지가 화면에 표시되어야 합니다 ✅✅✅");
         };
 
         reader.onerror = () => {
-            console.error("❌ FileReader 에러");
             alert("이미지 파일을 불러올 수 없습니다.");
             setImageLoading(false);
             setSelectedFile(null);
@@ -85,9 +80,9 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
         reader.readAsDataURL(file);
     };
 
+    // 이미지 제거
     const handleRemoveImage = () => {
-        console.log("🗑️ 이미지 제거 요청");
-        // 이전 이미지 URL 메모리 해제 (Blob URL인 경우만)
+        // Blob URL 메모리 해제
         if (selectedImage && selectedImage.startsWith('blob:')) {
             URL.revokeObjectURL(selectedImage);
         }
@@ -98,7 +93,6 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
-        console.log("✅ 이미지 제거 완료");
     };
 
     const handleDescriptionChange = (e) => {
@@ -107,7 +101,9 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
         setCurrentDescription(newDescription);
     };
 
+    // 영양 분석 실행
     const handleAnalyze = async () => {
+        // 최소 하나의 입력이 필요
         if (!selectedFile && !imageUrl.trim() && !description.trim()) {
             alert("사진(파일 또는 URL)을 업로드하거나 설명을 입력해주세요.");
             return;
@@ -122,14 +118,15 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
 
         setIsAnalyzing(true);
         try {
+            // 이미지 데이터 준비
             let imageDataUrl = null;
             if (selectedFile) {
                 imageDataUrl = await fileToDataUrl(selectedFile);
             } else if (imageUrl && imageUrl.trim()) {
-                // URL을 그대로 사용
                 imageDataUrl = imageUrl.trim();
             }
 
+            // GPT에게 전달할 시스템 프롬프트
             const systemPrompt = `
 당신은 20년 경력의 전문 영양사이자 비건 식단 전문가입니다.
 
@@ -163,6 +160,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
 - "일반적으로 ~에는 ~이 들어갑니다" 형태로 숨은 재료 설명
 `.trim();
 
+            // 응답 형식 가이드
             const responseFormat = `
 🍽️ **음식 정보**
 - 음식명: 
@@ -199,6 +197,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
 
             const userPrompt = `${instruction}\n\n다음 형식으로 응답해주세요:\n${responseFormat}`.trim();
 
+            // LLM 호출
             const result = await analyzeMealWithLLM({
                 prompt: userPrompt,
                 imageDataUrl,
@@ -216,16 +215,8 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
         }
     };
 
-    // 사진(파일 또는 URL) 또는 설명 중 하나만 있어도 분석 가능
+    // 폼 완성 여부 (사진 또는 설명 중 하나만 있으면 됨)
     const isFormComplete = (selectedImage || imageUrl.trim()) || description.trim();
-
-    // 디버깅: selectedImage 상태 변화 확인
-    useEffect(() => {
-        console.log("🔄 selectedImage 상태 변경:", selectedImage ? "이미지 있음" : "이미지 없음");
-        if (selectedImage) {
-            console.log("이미지 URL 타입:", selectedImage.substring(0, 50));
-        }
-    }, [selectedImage]);
 
     return (
         <div className="w-full bg-white/90 rounded-[48px] shadow-xl p-6" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
@@ -234,8 +225,8 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
             </h3>
 
             <div className="space-y-4">
+                {/* 이미지 업로드 영역 */}
                 <div className="relative h-72 bg-teal-50/30 rounded-3xl border-2 border-teal-300 overflow-hidden shadow-inner flex items-center justify-center" style={{ width: '100%', minHeight: '288px', maxHeight: '288px', boxSizing: 'border-box' }}>
-                    {/* 파일 입력 (완전히 숨김) */}
                     <input
                         id="meal-image-upload"
                         ref={fileInputRef}
@@ -247,7 +238,8 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
 
                     {selectedImage ? (
                         <>
-                            <div className="absolute inset-0 w-full h-full bg-white flex items-center justify-center" style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
+                            <div className="absolute inset-0 w-full h-full bg-white flex items-center justify-center">
+                                {/* 로딩 중 표시 */}
                                 {imageLoading && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/90 z-10">
                                         <div className="w-8 h-8 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
@@ -256,6 +248,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                                         </p>
                                     </div>
                                 )}
+                                {/* 이미지 표시 */}
                                 <img
                                     src={selectedImage}
                                     alt="업로드된 식단"
@@ -271,32 +264,22 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                                         objectFit: 'contain',
                                         objectPosition: 'center'
                                     }}
-                                    onLoad={(e) => {
-                                        console.log("✅✅✅ 이미지 렌더링 완료! ✅✅✅");
-                                        console.log("이미지 크기:", e.target.naturalWidth, "x", e.target.naturalHeight);
-                                        setImageLoading(false);
-                                    }}
-                                    onError={(e) => {
-                                        console.error("❌❌❌ 이미지 렌더링 에러! ❌❌❌", e);
-                                        console.error("이미지 URL:", selectedImage?.substring(0, 100));
+                                    onLoad={() => setImageLoading(false)}
+                                    onError={() => {
                                         alert("이미지를 표시할 수 없습니다.");
                                         handleRemoveImage();
                                     }}
-                                    onLoadStart={() => {
-                                        console.log("🔄 이미지 로드 시작...");
-                                    }}
                                 />
+                                {/* 호버시 나타나는 변경 안내 */}
                                 <div
                                     className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-                                    onClick={() => {
-                                        console.log("🔵 이미지 영역 클릭");
-                                        fileInputRef.current?.click();
-                                    }}
+                                    onClick={() => fileInputRef.current?.click()}
                                 >
                                     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-white/90 rounded-full text-gray-800 text-xs font-medium shadow-lg">
                                         클릭하여 사진 변경
                                     </div>
                                 </div>
+                                {/* 업로드 완료 배지 */}
                                 <div className="absolute top-2 left-2 px-3 py-1 bg-green-500/90 text-white text-xs font-medium rounded-full shadow-md flex items-center gap-1 z-20">
                                     <span>✓</span>
                                     <span>이미지 업로드 완료</span>
@@ -304,6 +287,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                             </div>
                         </>
                     ) : (
+                        // 이미지 없을 때 - 업로드 안내
                         <div className="w-full h-full flex flex-col items-center justify-center gap-4">
                             <div className="text-5xl text-cyan-500 animate-pulse">📷</div>
                             <p className="text-base text-gray-600 font-['Nunito'] font-medium">
@@ -321,6 +305,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                         </div>
                     )}
 
+                    {/* 삭제 버튼 */}
                     {selectedImage && !imageLoading && (
                         <button
                             onClick={(e) => {
@@ -336,7 +321,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                     )}
                 </div>
 
-                {/* URL 입력 옵션 (커뮤니티처럼) */}
+                {/* URL 직접 입력 옵션 */}
                 {!selectedImage && !imageUrl.trim() && (
                     <div className="space-y-2">
                         <p className="[font-family:'Nunito',Helvetica] font-normal text-gray-500 text-xs text-center">
@@ -352,6 +337,7 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                     </div>
                 )}
 
+                {/* 설명 입력 */}
                 <textarea
                     value={description}
                     onChange={handleDescriptionChange}
@@ -364,13 +350,15 @@ const MealUploadCard = memo(function MealUploadCard({ onAnalysisComplete, setIsA
                     </p>
                 )}
 
+                {/* 분석 버튼 */}
                 <button
                     onClick={handleAnalyze}
                     disabled={!isFormComplete}
-                    className={`w-full h-9 rounded-2xl shadow-lg text-sm font-medium font-['Nunito'] flex items-center justify-center gap-2 transition-all ${isFormComplete
-                        ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600 cursor-pointer'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
-                        }`}
+                    className={`w-full h-9 rounded-2xl shadow-lg text-sm font-medium font-['Nunito'] flex items-center justify-center gap-2 transition-all ${
+                        isFormComplete
+                            ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600 cursor-pointer'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
+                    }`}
                 >
                     <span>📊</span>
                     영양 분석하기

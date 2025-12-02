@@ -8,29 +8,21 @@ import RecipeTab from "./RecipeTab";
 function ChallengeContent() {
     const [activeTab, setActiveTab] = useState('오늘의 식단');
 
-    // 탭에 따라 다른 컨텐츠 렌더링
-    const renderContent = () => {
-        switch(activeTab) {
-            case '오늘의 식단':
-                return <MealContainer />;
-            case '진행 현황':
-                return <ProgressContainer />;
-            case '레시피':
-                return <RecipeTab key={activeTab} />; // key를 추가하여 탭 전환 시 재마운트
-            case '쇼핑':
-                return <ShoppingTab />;
-            default:
-                return <MealContainer />;
-        }
+    // 탭별 컴포넌트 매핑
+    const tabComponents = {
+        '오늘의 식단': MealContainer,
+        '진행 현황': ProgressContainer,
+        '레시피': RecipeTab,
+        '쇼핑': ShoppingTab,
     };
+
+    // 현재 선택된 탭의 컴포넌트
+    const ActiveComponent = tabComponents[activeTab] || MealContainer;
 
     return (
         <div className="w-full flex flex-col gap-8">
-            {/* 탭 - activeTab state를 props로 전달 */}
             <ChallengeTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-            
-            {/* 선택된 탭의 컨텐츠 */}
-            {renderContent()}
+            <ActiveComponent key={activeTab === '레시피' ? activeTab : undefined} />
         </div>
     );
 }
