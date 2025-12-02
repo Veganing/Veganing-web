@@ -8,10 +8,9 @@ import { MapPinIcon, HeartIcon, MessageCircleIcon, TrendingUp, Clock, Flame } fr
 const ChallengeTab = ({ feedPosts = [] }) => {
     const [sortBy, setSortBy] = useState("recent"); // "likes", "comments", "recent"
 
-    // 정렬된 피드 데이터
     const sortedPosts = useMemo(() => {
         const posts = [...feedPosts];
-        
+
         switch (sortBy) {
             case "likes":
                 return posts.sort((a, b) => (b.likes || 0) - (a.likes || 0));
@@ -19,7 +18,6 @@ const ChallengeTab = ({ feedPosts = [] }) => {
                 return posts.sort((a, b) => (b.comments || 0) - (a.comments || 0));
             case "recent":
             default:
-                // 가장 최근 순 (time을 파싱해서 정렬하거나, index 기반으로)
                 return posts;
         }
     }, [feedPosts, sortBy]);
@@ -32,7 +30,7 @@ const ChallengeTab = ({ feedPosts = [] }) => {
 
     return (
         <div className="flex flex-col gap-6 w-full max-w-6xl mx-auto">
-            {/* 정렬 옵션 */}
+            { }
             <Card className="bg-[#fffffff2] border-[0.67px] border-[#0000001a] rounded-[14px]">
                 <CardContent className="p-4">
                     <div className="flex items-center gap-3 flex-wrap">
@@ -47,11 +45,10 @@ const ChallengeTab = ({ feedPosts = [] }) => {
                                     key={option.value}
                                     onClick={() => setSortBy(option.value)}
                                     variant={isActive ? "default" : "outline"}
-                                    className={`h-9 px-4 rounded-lg transition-all ${
-                                        isActive
-                                            ? "bg-[#00a63e] text-white hover:bg-[#008235] [font-family:'Nunito',Helvetica] font-medium text-sm"
-                                            : "bg-white border-[#0000001a] text-[#495565] hover:bg-gray-50 [font-family:'Nunito',Helvetica] font-medium text-sm"
-                                    }`}
+                                    className={`h-9 px-4 rounded-lg transition-all ${isActive
+                                        ? "bg-[#00a63e] text-white hover:bg-[#008235] [font-family:'Nunito',Helvetica] font-medium text-sm"
+                                        : "bg-white border-[#0000001a] text-[#495565] hover:bg-gray-50 [font-family:'Nunito',Helvetica] font-medium text-sm"
+                                        }`}
                                 >
                                     <Icon className="w-4 h-4 mr-2" />
                                     {option.label}
@@ -62,7 +59,7 @@ const ChallengeTab = ({ feedPosts = [] }) => {
                 </CardContent>
             </Card>
 
-            {/* 피드 랭킹 목록 */}
+            {/* 피드랭킹부분!! */}
             <div className="flex flex-col gap-4">
                 {sortedPosts.length === 0 ? (
                     <Card className="bg-[#fffffff2] border-[0.67px] border-[#0000001a] rounded-[14px]">
@@ -81,14 +78,14 @@ const ChallengeTab = ({ feedPosts = [] }) => {
                         >
                             <CardContent className="p-6">
                                 <div className="flex items-start gap-4">
-                                    {/* 랭킹 순위 */}
+                                    {/* 랭킹순위 */}
                                     <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-[#00a63e] to-[#008235] flex items-center justify-center">
                                         <span className="[font-family:'Nunito',Helvetica] font-bold text-white text-lg">
                                             {index + 1}
                                         </span>
                                     </div>
 
-                                    {/* 게시글 내용 */}
+                                    {/* 게시글내용 */}
                                     <div className="flex-1 flex flex-col gap-3">
                                         <div className="flex items-start justify-between">
                                             <div className="flex items-start gap-3 flex-1">
@@ -159,7 +156,7 @@ const ChallengeTab = ({ feedPosts = [] }) => {
                 )}
             </div>
 
-            {/* 상위 3개 강조 */}
+            { }
             {sortedPosts.length > 0 && sortBy !== "recent" && (
                 <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-[14px] border border-[#00a63e]/20">
                     <h3 className="[font-family:'Nunito',Helvetica] font-semibold text-[#00a63e] text-lg mb-2">

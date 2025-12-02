@@ -18,41 +18,34 @@ const CreatePost = () => {
     const [category, setCategory] = useState("story");
     const [isLoading, setIsLoading] = useState(false);
 
-    // 파일 선택 핸들러
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // 이미지 파일인지 확인
         if (!file.type.startsWith('image/')) {
             alert("이미지 파일만 업로드 가능합니다.");
             return;
         }
 
-        // 파일 크기 제한 (5MB)
         if (file.size > 5 * 1024 * 1024) {
             alert("이미지 크기는 5MB 이하여야 합니다.");
             return;
         }
 
         setImageFile(file);
-        
-        // 미리보기 생성
+
         const reader = new FileReader();
         reader.onloadend = () => {
             setImagePreview(reader.result);
-            // Base64 데이터를 imageUrl로 설정
             setImageUrl(reader.result);
         };
         reader.readAsDataURL(file);
     };
 
-    // 이미지 제거 핸들러
     const handleRemoveImage = () => {
         setImageFile(null);
         setImagePreview("");
         setImageUrl("");
-        // 파일 input 초기화
         const fileInput = document.getElementById('image-file-input');
         if (fileInput) fileInput.value = '';
     };
@@ -73,34 +66,28 @@ const CreatePost = () => {
                 return;
             }
 
-            console.log("🔵 게시글 작성 시작:", {
+            console.log("게시글 작성 시작:", {
                 contentLength: content.trim().length,
                 category: category,
                 hasImage: !!imageUrl
             });
-
-            // 해시태그 파싱 (#으로 시작하는 것들 추출)
             const tagArray = hashtags
                 .split(/[\s,]+/)
                 .filter((tag) => tag.startsWith("#"))
                 .map((tag) => tag.trim());
-
-            // imageUrl이 있으면 사용 (파일 업로드 시 Base64, URL 입력 시 URL)
             const postData = {
                 content: content.trim(),
                 category: category,
                 ...(imageUrl && { imageUrl: imageUrl.trim() }),
             };
 
-            console.log("🔵 게시글 데이터:", postData);
-            console.log("🔵 토큰 존재 여부:", token ? "있음" : "없음");
+            console.log("게시글 데이터:", postData);
+            console.log("토큰 존재 여부:", token ? "있음" : "없음");
 
             const response = await createPost(postData, token);
-            console.log("✅ 게시글 작성 성공:", response);
+            console.log("게시글 작성 성공:", response);
             alert("게시글이 작성되었습니다!");
-            // 커뮤니티 페이지로 이동하면서 리프레시 트리거
             navigate("/community", { replace: true });
-            // 페이지 새로고침으로 최신 게시글 반영
             window.location.reload();
         } catch (error) {
             console.error("게시글 작성 실패:", error);
@@ -110,8 +97,7 @@ const CreatePost = () => {
                 error: error.error,
                 details: error.details
             });
-            
-            // 토큰 만료 처리
+
             if (error.message.includes("Token expired") || error.status === 401) {
                 removeToken();
                 clearAuth();
@@ -119,17 +105,14 @@ const CreatePost = () => {
                 navigate("/login");
                 return;
             }
-            
-            // 더 자세한 에러 메시지 표시
+
             let errorMessage = error.message || "알 수 없는 오류가 발생했습니다.";
-            
-            // 백엔드에서 반환한 에러 메시지가 있으면 사용
             if (error.error) {
                 errorMessage = error.error;
             } else if (error.details) {
                 errorMessage = error.details;
             }
-            
+
             alert(`게시글 작성에 실패했습니다.\n\n오류: ${errorMessage}\n\n원인:\n- 로그인이 필요할 수 있습니다.\n- 백엔드 서버가 실행 중인지 확인해주세요.\n- 브라우저 콘솔(F12)에서 자세한 에러를 확인할 수 있습니다.`);
         } finally {
             setIsLoading(false);
@@ -175,11 +158,10 @@ const CreatePost = () => {
                                                 key={cat.value}
                                                 type="button"
                                                 onClick={() => setCategory(cat.value)}
-                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                                    category === cat.value
-                                                        ? "bg-[#00a63e] text-white"
-                                                        : "bg-gray-100 text-[#495565] hover:bg-gray-200"
-                                                }`}
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${category === cat.value
+                                                    ? "bg-[#00a63e] text-white"
+                                                    : "bg-gray-100 text-[#495565] hover:bg-gray-200"
+                                                    }`}
                                             >
                                                 {cat.label}
                                             </button>
@@ -187,7 +169,7 @@ const CreatePost = () => {
                                     </div>
                                 </div>
 
-                                {/* 내용 입력 */}
+                                { }
                                 <div className="flex flex-col gap-2">
                                     <label className="[font-family:'Nunito',Helvetica] font-medium text-[#495565] text-sm">
                                         내용
@@ -201,14 +183,14 @@ const CreatePost = () => {
                                     />
                                 </div>
 
-                                {/* 이미지 업로드 */}
+                                { }
                                 <div className="flex flex-col gap-2">
                                     <label className="[font-family:'Nunito',Helvetica] font-medium text-[#495565] text-sm flex items-center gap-2">
                                         <ImageIcon className="w-4 h-4" />
                                         이미지 (선택사항)
                                     </label>
-                                    
-                                    {/* 파일 선택 버튼 */}
+
+                                    { }
                                     {!imagePreview && (
                                         <div className="flex flex-col gap-2">
                                             <label
@@ -230,7 +212,7 @@ const CreatePost = () => {
                                         </div>
                                     )}
 
-                                    {/* 이미지 미리보기 */}
+                                    { }
                                     {imagePreview && (
                                         <div className="relative">
                                             <img
@@ -250,7 +232,7 @@ const CreatePost = () => {
                                         </div>
                                     )}
 
-                                    {/* 또는 URL 입력 */}
+                                    { }
                                     {!imagePreview && (
                                         <div className="mt-2">
                                             <p className="[font-family:'Nunito',Helvetica] font-normal text-[#697282] text-xs mb-2 text-center">
@@ -267,7 +249,7 @@ const CreatePost = () => {
                                     )}
                                 </div>
 
-                                {/* 해시태그 입력 */}
+                                { }
                                 <div className="flex flex-col gap-2">
                                     <label className="[font-family:'Nunito',Helvetica] font-medium text-[#495565] text-sm flex items-center gap-2">
                                         <Hash className="w-4 h-4" />

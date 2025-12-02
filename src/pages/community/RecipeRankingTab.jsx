@@ -8,7 +8,6 @@ import quinoaSaladImage from "../../assets/community/quinoa_salad.jpg";
 import dubuScrambleImage from "../../assets/community/dubu_scramble.jpg";
 import rentilCarreImage from "../../assets/community/rentil_carre.jpg";
 
-// 레시피 랭킹 더미 데이터
 const RECIPE_RANKING_POSTS = [
     {
         id: 1,
@@ -74,7 +73,7 @@ const RecipeRankingTab = () => {
         <div className="flex flex-col gap-6">
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200 mb-4">
                 <h2 className="[font-family:'Nunito',Helvetica] font-semibold text-[#00a63e] text-lg mb-2">
-                    🥗 인기 레시피 랭킹
+                    인기 레시피 랭킹
                 </h2>
                 <p className="[font-family:'Nunito',Helvetica] font-normal text-[#495565] text-sm">
                     많은 사용자들이 좋아하는 레시피에 대한 후기와 팁을 확인해보세요!
@@ -139,7 +138,7 @@ const RecipeRankingTab = () => {
                                         {post.recipe && (
                                             <div className="bg-gray-50 rounded-lg p-4 mb-3 border-l-4 border-[#00a63e]">
                                                 <h4 className="[font-family:'Nunito',Helvetica] font-semibold text-[#00a63e] text-sm mb-2">
-                                                    📝 레시피
+                                                    레시피
                                                 </h4>
                                                 <div className="space-y-2">
                                                     {post.recipe.map((step, idx) => (
