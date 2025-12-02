@@ -63,30 +63,15 @@ const lifestyleBenefits = [
 export function VeganBenefits() {
   return (
     <section className="py-24 relative overflow-hidden">
-      {/* Animated background elements */}
       <motion.div
         className="absolute top-1/4 right-0 w-72 h-72 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full blur-3xl opacity-40"
-        animate={{
-          scale: [1, 1.2, 1],
-          x: [0, -50, 0]
-        }}
-        transition={{
-          duration: 15,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
+        animate={{ scale: [1, 1.2, 1], x: [0, -50, 0] }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute bottom-1/4 left-0 w-64 h-64 bg-gradient-to-br from-cyan-200 to-emerald-200 rounded-full blur-3xl opacity-30"
-        animate={{
-          scale: [1, 1.3, 1],
-          x: [0, 50, 0]
-        }}
-        transition={{
-          duration: 18,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
+        animate={{ scale: [1, 1.3, 1], x: [0, 50, 0] }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
       />
 
       <div className="container mx-auto px-4">
@@ -111,7 +96,6 @@ export function VeganBenefits() {
           </p>
         </motion.div>
 
-        {/* Health Benefits with Progress */}
         <div className="mb-20">
           <motion.h3
             className="text-3xl font-bold text-center bg-gradient-to-r from-teal-700 to-emerald-700 bg-clip-text text-transparent mb-12"
@@ -161,7 +145,6 @@ export function VeganBenefits() {
           </div>
         </div>
 
-        {/* Lifestyle Benefits */}
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -219,10 +202,7 @@ export function VeganBenefits() {
             viewport={{ once: true }}
           >
             <div className="relative">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
+              <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
                 <ImageWithFallback
                   src="https://images.unsplash.com/photo-1608474786042-baee07c9a4b2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwbGFudCUyMGJhc2VkJTIwZGlldCUyMGJlbmVmaXRzfGVufDF8fHx8MTc1OTA3NzU3MHww&ixlib=rb-4.1.0&q=80&w=1080"
                   alt="건강한 비건 라이프스타일"
@@ -230,7 +210,6 @@ export function VeganBenefits() {
                 />
               </motion.div>
 
-              {/* Floating testimonial */}
               <motion.div
                 className="absolute -bottom-6 -left-6 z-10"
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -268,7 +247,6 @@ export function VeganBenefits() {
           </motion.div>
         </div>
 
-        {/* Call to Action */}
         <motion.div
           className="text-center mt-20"
           initial={{ opacity: 0, y: 50 }}

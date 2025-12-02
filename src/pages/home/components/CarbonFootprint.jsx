@@ -1,4 +1,3 @@
-// Option A — Tailwind 유지+간소화
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -30,8 +29,6 @@ export function CarbonFootprint() {
     return (
         <section className="py-24 bg-gradient-to-br from-blue-50 via-green-50 to-emerald-50">
             <div className={wrapper}>
-
-                {/* TITLE */}
                 <div className="text-center mb-20">
                     <Badge variant="outline" className="mb-6 bg-blue-50 border-blue-200">
                         <Globe className="w-4 h-4 mr-2 text-blue-600" />
@@ -46,7 +43,6 @@ export function CarbonFootprint() {
                     </p>
                 </div>
 
-                {/* IMAGE + STATS */}
                 <div className="grid lg:grid-cols-2 gap-16 items-center mb-20">
                     <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }}>
                         <ImageWithFallback
@@ -69,13 +65,11 @@ export function CarbonFootprint() {
                     </div>
                 </div>
 
-                {/* BEFORE vs AFTER */}
                 <SectionTitle>축산업 vs 식물성 농업 비교</SectionTitle>
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
                     {carbonImpacts.map((item, i) => <ImpactCard key={i} {...item} />)}
                 </div>
 
-                {/* DAILY IMPACT */}
                 <motion.div className={shadowBox}>
                     <SectionTitle>당신의 하루가 만드는 변화</SectionTitle>
 

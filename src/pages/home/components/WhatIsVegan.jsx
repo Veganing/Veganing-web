@@ -3,6 +3,7 @@ import { Badge } from "../ui/badge";
 import { ImageWithFallback } from "../figma-temp/ImageWithFallback";
 import { Leaf, Heart, Globe, Utensils, Sprout, Shield } from "lucide-react";
 import { motion } from "motion/react";
+
 const veganPrinciples = [
     {
         icon: Heart,
@@ -24,30 +25,15 @@ const veganPrinciples = [
 export default function WhatIsVegan() {
     return (
         <section className="py-24 relative overflow-hidden">
-            {/* Background decorative elements */}
             <motion.div
                 className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-emerald-200 to-cyan-200 rounded-full blur-3xl opacity-40"
-                animate={{
-                    x: [0, 50, 0],
-                    y: [0, -30, 0]
-                }}
-                transition={{
-                    duration: 20,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
+                animate={{ x: [0, 50, 0], y: [0, -30, 0] }}
+                transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
             />
             <motion.div
                 className="absolute bottom-0 right-1/4 w-80 h-80 bg-gradient-to-br from-teal-200 to-emerald-200 rounded-full blur-3xl opacity-30"
-                animate={{
-                    x: [0, -40, 0],
-                    y: [0, 40, 0]
-                }}
-                transition={{
-                    duration: 18,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
+                animate={{ x: [0, -40, 0], y: [0, 40, 0] }}
+                transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
             />
 
             <div className="container mx-auto px-4">
@@ -80,10 +66,7 @@ export default function WhatIsVegan() {
                         viewport={{ once: true }}
                     >
                         <div className="relative">
-                            <motion.div
-                                whileHover={{ scale: 1.02 }}
-                                transition={{ type: "spring", stiffness: 300 }}
-                            >
+                            <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
                                 <ImageWithFallback
                                     src="https://images.unsplash.com/photo-1608474786042-baee07c9a4b2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwbGFudCUyMGJhc2VkJTIwZGlldCUyMGJlbmVmaXRzfGVufDF8fHx8MTc1OTA3NzU3MHww&ixlib=rb-4.1.0&q=80&w=1080"
                                     alt="식물성 식품의 다양성"
@@ -91,7 +74,6 @@ export default function WhatIsVegan() {
                                 />
                             </motion.div>
 
-                            {/* Floating info card */}
                             <motion.div
                                 className="absolute -top-6 -right-6 z-10"
                                 initial={{ opacity: 0, scale: 0.8 }}
@@ -151,12 +133,8 @@ export default function WhatIsVegan() {
                                                         <Icon className="w-7 h-7 text-teal-600" />
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-xl font-bold text-gray-900 mb-2">
-                                                            {principle.title}
-                                                        </h4>
-                                                        <p className="text-gray-600 leading-relaxed">
-                                                            {principle.description}
-                                                        </p>
+                                                        <h4 className="text-xl font-bold text-gray-900 mb-2">{principle.title}</h4>
+                                                        <p className="text-gray-600 leading-relaxed">{principle.description}</p>
                                                     </div>
                                                 </div>
                                             </CardContent>
@@ -168,7 +146,6 @@ export default function WhatIsVegan() {
                     </motion.div>
                 </div>
 
-                {/* Statistics section */}
                 <motion.div
                     className="bg-white/70 backdrop-blur-lg rounded-[3rem] p-12 shadow-2xl ring-4 ring-white/50"
                     initial={{ opacity: 0, y: 50 }}
