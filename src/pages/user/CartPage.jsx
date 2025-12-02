@@ -1,5 +1,3 @@
-// 위치: src/pages/user/CartPage.jsx
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import CartSection from "./CartSection";
@@ -14,7 +12,6 @@ export default function CartPage() {
             장바구니
         </h1>
 
-        {/* 기존에 쓰던 CartSection 통째로 재사용 */}
         <CartSection navigate={navigate} />
         </div>
     </div>

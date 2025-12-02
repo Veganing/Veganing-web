@@ -1,10 +1,7 @@
-// 목적: 회원가입 페이지 (이름/이메일/비밀번호/확인/주소 + 약관동의)
+import React, { useState } from "react";                 
+import { useNavigate } from "react-router-dom";          
+import { motion } from "motion/react";                   
 
-import React, { useState } from "react";                 // React 및 상태 관리용 훅
-import { useNavigate } from "react-router-dom";          // 라우팅 이동을 위한 훅
-import { motion } from "motion/react";                   // 화면 등장 애니메이션용
-
-// 프로젝트 내 shadcn 스타일 UI 컴포넌트 불러오기
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -16,33 +13,28 @@ import {
   CardDescription,
 } from "../../components/ui/card";
 
-// lucide-react 아이콘 불러오기
 import { Leaf, Mail, Lock, Eye, EyeOff, User, CheckCircle2, MapPin } from "lucide-react";
 import { signup, saveToken, saveUser } from "../../api/backend";
 import { setAuth } from "../../hooks/auth";
 
 export default function SignUp() {
-  // 폼 상태 관리 (입력값 저장)
   const [formData, setFormData] = useState({
-    name: "",              // 이름
-    email: "",             // 이메일
-    password: "",          // 비밀번호
-    confirmPassword: "",   // 비밀번호 확인
-    address: "",           // 주소 (추가됨)
-    veganType: "flexitarian", // 비건 타입 (기본값)
+    name: "",             
+    email: "",             
+    password: "",          
+    confirmPassword: "",   
+    address: "",           
+    veganType: "flexitarian", 
   });
 
-  // 각종 토글 상태
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState("");
 
-  // 페이지 이동용 navigate
   const navigate = useNavigate();
 
-  // 비밀번호 강도 계산 함수
   const passwordStrength = (password) => {
     if (!password) return { strength: 0, text: "", color: "" };
     if (password.length < 6) return { strength: 1, text: "약함", color: "bg-red-400" };
@@ -52,18 +44,15 @@ export default function SignUp() {
 
   const strength = passwordStrength(formData.password);
 
-  // 제출 이벤트 - 백엔드 API 호출
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // 비밀번호 확인
     if (formData.password !== formData.confirmPassword) {
       setError("비밀번호가 일치하지 않습니다.");
       return;
     }
 
-    // 약관 동의 확인
     if (!agreedToTerms) {
       setError("이용약관에 동의해주세요.");
       return;
@@ -72,7 +61,6 @@ export default function SignUp() {
     setIsLoading(true);
 
     try {
-      // 백엔드 API 호출
       const response = await signup({
         email: formData.email.trim(),
         password: formData.password,
@@ -80,19 +68,16 @@ export default function SignUp() {
         veganType: formData.veganType || "flexitarian",
       });
 
-      // 토큰과 사용자 정보 저장
       if (response.token) {
         saveToken(response.token);
       }
       if (response.user) {
         saveUser(response.user);
-        // 기존 auth 형식도 유지 (호환성)
         localStorage.setItem("auth", JSON.stringify({ 
           email: response.user.email, 
           name: response.user.nickname || response.user.name 
         }));
-        
-        // AuthContext를 위한 인증 정보 저장 (ProtectedRoute에서 사용)
+
         setAuth({
           email: response.user.email,
           name: response.user.nickname || response.user.name,
@@ -101,7 +86,7 @@ export default function SignUp() {
       }
 
       alert("회원가입이 완료되었습니다! 자동으로 로그인되었습니다.");
-      navigate("/"); // 홈으로 이동
+      navigate("/"); 
     } catch (err) {
       console.error("회원가입 실패:", err);
       const errorMessage = err.message || "회원가입 중 오류가 발생했습니다.";
@@ -115,13 +100,12 @@ export default function SignUp() {
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-teal-50/50 via-emerald-50/50 to-cyan-50/50">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}      // 시작 위치 (살짝 아래, 투명)
-        animate={{ opacity: 1, y: 0 }}       // 등장 후 위치 (정상, 불투명)
-        transition={{ duration: 0.5 }}       // 애니메이션 시간
+        initial={{ opacity: 0, y: 20 }}      
+        animate={{ opacity: 1, y: 0 }}       
+        transition={{ duration: 0.5 }}       
         className="w-full max-w-2xl"
       >
         <Card className="border-0 shadow-2xl shadow-teal-100/50 rounded-3xl overflow-hidden">
-          {/* 상단 헤더 */}
           <CardHeader className="space-y-4 bg-gradient-to-br from-emerald-400 to-teal-400 text-white pb-8 pt-10">
             <div className="flex justify-center mb-2">
               <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-lg">
@@ -134,12 +118,9 @@ export default function SignUp() {
             </CardDescription>
           </CardHeader>
 
-          {/* 본문 */}
           <CardContent className="pt-8 pb-8 px-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* 이름 & 이메일 */}
               <div className="grid md:grid-cols-2 gap-6">
-                {/* 이름 */}
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-gray-700">이름</Label>
                   <div className="relative">
@@ -156,7 +137,6 @@ export default function SignUp() {
                   </div>
                 </div>
 
-                {/* 이메일 */}
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-700">이메일</Label>
                   <div className="relative">
@@ -174,9 +154,7 @@ export default function SignUp() {
                 </div>
               </div>
 
-              {/* 비밀번호 & 비밀번호 확인 */}
               <div className="grid md:grid-cols-2 gap-6">
-                {/* 비밀번호 */}
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-gray-700">비밀번호</Label>
                   <div className="relative">
@@ -217,7 +195,6 @@ export default function SignUp() {
                   )}
                 </div>
 
-                {/* 비밀번호 확인 */}
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword" className="text-gray-700">비밀번호 확인</Label>
                   <div className="relative">
@@ -254,7 +231,6 @@ export default function SignUp() {
                 </div>
               </div>
 
-              {/* 주소 입력칸 (추가됨) */}
               <div className="space-y-2">
                 <Label htmlFor="address" className="text-gray-700">주소</Label>
                 <div className="relative">
@@ -271,7 +247,6 @@ export default function SignUp() {
                 </div>
               </div>
 
-              {/* 약관 동의 */}
               <div className="space-y-4">
                 <label className="flex items-start space-x-3 cursor-pointer group">
                   <input
@@ -288,14 +263,12 @@ export default function SignUp() {
                 </label>
               </div>
 
-              {/* 에러 메시지 */}
               {error && (
                 <div className="p-3 rounded-lg bg-red-50 border border-red-200">
                   <p className="text-sm text-red-600 text-center">{error}</p>
                 </div>
               )}
 
-              {/* 회원가입 버튼 */}
               <Button
                 type="submit"
                 disabled={isLoading || !agreedToTerms}
@@ -305,7 +278,6 @@ export default function SignUp() {
               </Button>
             </form>
 
-            {/* 하단 링크: 이미 회원이라면 로그인 */}
             <div className="mt-8 pt-6 border-t-2 border-gray-100">
               <p className="text-center text-gray-600">
                 이미 회원이신가요?{" "}

@@ -1,19 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 
-function SearchBar({ onSearch, sortOrder, onSortChange, resetTrigger, category, initialValue = '' }) {
-    const [query, setQuery] = useState(initialValue);
+function SearchBar({ onSearch, sortOrder, onSortChange, resetTrigger, category }) {
+    const [query, setQuery] = useState('');
 
     useEffect(() => {
         setQuery('');
     }, [resetTrigger]);
-
-    // initialValue가 변경되면 query 업데이트 (URL 파라미터로부터 검색어가 들어올 때)
-    useEffect(() => {
-        if (initialValue) {
-            setQuery(initialValue);
-        }
-    }, [initialValue]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -47,27 +40,6 @@ function SearchBar({ onSearch, sortOrder, onSortChange, resetTrigger, category, 
 
             {!isBookCategory && !isRestaurantCategory && (
                 <div className="flex gap-2">
-                    {/*
-                    <button
-                        onClick={() => onSortChange('sim')}
-                        className={`px-4 py-2 rounded-xl text-sm font-normal font-['Inter'] leading-tight transition-colors ${
-                            sortOrder === 'sim'
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-gray-100 text-neutral-950 hover:bg-gray-200'
-                        }`}
-                    >
-                        정확도순
-                    </button>
-                    <button
-                        onClick={() => onSortChange('date')}
-                        className={`px-4 py-2 rounded-xl text-sm font-normal font-['Inter'] leading-tight transition-colors ${
-                            sortOrder === 'date'
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-gray-100 text-neutral-950 hover:bg-gray-200'
-                        }`}
-                    >
-                        최신순
-                    </button>*/}
                     <button
                         onClick={() => onSortChange('price_asc')}
                         className={`px-4 py-2 rounded-xl text-sm font-normal font-['Inter'] leading-tight transition-colors ${

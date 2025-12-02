@@ -1,5 +1,3 @@
-// 위치: src/data/products.js
-
 export const PRODUCTS = [
     {
     id: 1,
@@ -82,7 +80,6 @@ export const PRODUCTS = [
         mainCategory: "FOOD",   
     },
 
-
     //도서 더미
     {
         id: 9,
@@ -157,7 +154,6 @@ export const PRODUCTS = [
         mainCategory: "BOOK"
     },
 
-  // ⭐ 화장품 더미
     {
         id: 17,
         name: "비건 수분 크림",
@@ -176,6 +172,8 @@ export const PRODUCTS = [
         description: "벌꿀 대신 식물성 왁스를 사용한 촉촉 립밤.",
         mainCategory: "COSMETIC",
     },
+
+    //화장품 더미
     {
         id: 19,
         name: "비건 촉촉 토너",
@@ -231,7 +229,7 @@ export const PRODUCTS = [
         mainCategory: "COSMETIC"
     },
 
-  // ⭐ 영양제 더미
+    //영앙제 더미
     {
         id: 25,
         name: "비건 오메가3",
