@@ -3,11 +3,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import useCarbonHistory from "../../../../hooks/useCarbonHistory";
 
 function ProgressContainer() {
-    const { carbonHistory, totalCO2, getGrowthStage, loadData } = useCarbonHistory();
+    const { carbonHistory, totalCO2, loadData } = useCarbonHistory();
 
-    // 그래프용 데이터 변환
+    // 그래프용 데이터로 변환
     const chartData = useMemo(() => {
-        return carbonHistory.map((entry, index) => {
+        return carbonHistory.map((entry) => {
             const date = new Date(entry.date);
             const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
             return {
@@ -17,25 +17,18 @@ function ProgressContainer() {
         });
     }, [carbonHistory]);
 
-    // 페이지가 보일 때마다 데이터 새로고침
+    // 페이지 포커스시 데이터 새로고침
     useEffect(() => {
-        // 초기 로드
         if (loadData) {
             loadData();
         }
 
-        // 페이지 포커스 시 데이터 새로고침
         const handleFocus = () => {
-            if (loadData) {
-                loadData();
-            }
+            if (loadData) loadData();
         };
 
-        // visibilitychange 이벤트로 페이지가 다시 보일 때 데이터 새로고침
         const handleVisibilityChange = () => {
-            if (!document.hidden && loadData) {
-                loadData();
-            }
+            if (!document.hidden && loadData) loadData();
         };
 
         window.addEventListener('focus', handleFocus);
@@ -49,6 +42,7 @@ function ProgressContainer() {
 
     return (
         <div className="w-full flex flex-col bg-white/90 rounded-[48px] shadow-2xl p-6 gap-6">
+            {/* 헤더 */}
             <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold font-['Nunito'] text-gray-900">
                     진행 현황
@@ -74,7 +68,7 @@ function ProgressContainer() {
                 </div>
             </div>
 
-            {/* 그래프 */}
+            {/* 그래프 또는 빈 상태 */}
             {carbonHistory.length > 0 ? (
                 <div>
                     <h4 className="text-sm font-medium text-gray-700 font-['Nunito'] mb-3">

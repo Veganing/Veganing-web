@@ -92,7 +92,7 @@ function Header() {
                                 >
                                     {/* 활성일 땐 activeIcon, 아니면 icon */}
                                     <img
-                                        src={isActive ? item.activeIcon : item.icon}
+                                        src={isActive ? item.icon : item.activeIcon}
                                         alt=""
                                         className={`${["/community"].includes(item.path) ? "w-6 h-6" : "w-4 h-4"}`}
                                     />

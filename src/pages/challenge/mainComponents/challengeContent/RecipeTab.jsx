@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { recommendMealRecipe } from '../../../../api/openai';
 
 const STORAGE_KEY = 'challenge_meal_index_state';
 const DAILY_RECIPE_KEY = 'challenge_daily_recommended_recipe';
 
-// 더미 레시피 데이터 (퀴노아와 채소 볶음)
+// 더미 레시피 (기본 제공용)
 const DUMMY_RECIPE = {
     id: 'dummy-quinoa-stir-fry',
     title: '퀴노아와 채소 볶음',
@@ -39,7 +38,6 @@ const DUMMY_RECIPE = {
 const RecipeTab = () => {
     const [recipes, setRecipes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-
     const [selectedRecipe, setSelectedRecipe] = useState(null);
 
     // localStorage에서 식단 가져오기
@@ -56,11 +54,10 @@ const RecipeTab = () => {
         return [];
     };
 
-    // 저장된 식단 분석 결과를 기반으로 레시피 추천
+    // 컴포넌트 마운트 & 페이지 포커스시 레시피 로드
     useEffect(() => {
         loadRecommendedRecipes();
         
-        // 탭이 보일 때마다 (포커스될 때마다) 새로고침
         const handleVisibilityChange = () => {
             if (!document.hidden) {
                 loadRecommendedRecipes();
@@ -80,62 +77,48 @@ const RecipeTab = () => {
         };
     }, []);
 
+    // 추천 레시피 로드
     const loadRecommendedRecipes = async () => {
         setIsLoading(true);
         try {
-            // 전체 식단 기반 추천 레시피를 먼저 확인
             let dailyRecommendedRecipe = null;
+            
+            // 전체 식단 기반 추천 레시피 확인
             try {
                 const storedDailyRecipe = localStorage.getItem(DAILY_RECIPE_KEY);
                 if (storedDailyRecipe) {
                     dailyRecommendedRecipe = storedDailyRecipe;
-                    console.log('🔵 RecipeTab - 전체 식단 기반 추천 레시피 발견');
                 }
             } catch (error) {
                 console.error('전체 식단 기반 추천 레시피 로드 실패:', error);
             }
             
-            // localStorage에서 직접 식단 가져오기
             let meals = getMealsFromStorage();
             
-            console.log('🔵 RecipeTab - localStorage에서 가져온 식단 개수:', meals.length);
-            
-            // window.getAllMeals도 시도 (fallback)
+            // fallback: window.getAllMeals 시도
             if (meals.length === 0) {
                 const windowMeals = window.getAllMeals?.() || [];
-                console.log('🔵 RecipeTab - window.getAllMeals에서 가져온 식단 개수:', windowMeals.length);
                 if (windowMeals.length > 0) {
                     meals = windowMeals;
                 }
             }
             
-            console.log('🔵 RecipeTab - 최종 가져온 식단 개수:', meals.length);
-            
             // 더미 레시피를 항상 첫 번째에 추가
             const recommendedRecipes = [DUMMY_RECIPE];
             
-            // 전체 식단 기반 추천 레시피가 있으면 우선 추가
+            // 전체 식단 기반 추천 레시피가 있으면 추가
             if (dailyRecommendedRecipe) {
                 try {
-                    // 전체 식단의 분석 결과를 합쳐서 종합 분석 결과 생성
                     const combinedAnalysis = meals
                         .filter(meal => meal.analysis)
                         .map(meal => meal.analysis)
                         .join('\n\n---\n\n');
                     
-                    // 전체 식단 기반 추천 레시피를 파싱하여 추가
                     const parsedRecipes = parseMultipleRecipes(dailyRecommendedRecipe, combinedAnalysis);
                     recommendedRecipes.push(...parsedRecipes.slice(0, 2)); // 최대 2개만 추가
-                    console.log('✅ 전체 식단 기반 추천 레시피 추가 완료');
                 } catch (error) {
                     console.error('전체 식단 기반 추천 레시피 파싱 실패:', error);
                 }
-            }
-            
-            // 전체 식단 기반 추천 레시피가 없거나 식단이 없으면 빈 배열 반환
-            if (meals.length === 0 && !dailyRecommendedRecipe) {
-                setRecipes(recommendedRecipes);
-                return;
             }
             
             setRecipes(recommendedRecipes);
@@ -147,16 +130,13 @@ const RecipeTab = () => {
         }
     };
 
-    // 여러 레시피를 파싱하는 함수 (2개 추출)
+    // 여러 레시피 파싱 (최대 2개)
     const parseMultipleRecipes = (recipeText, analysisResult) => {
         if (!recipeText) return [];
         
         const recipes = [];
-        
-        // 레시피를 구분자로 분리
         const recipeSections = recipeText.split(/---레시피 \d+---/).filter(section => section.trim());
         
-        // 각 레시피 섹션을 파싱 (최대 2개만)
         for (const section of recipeSections.slice(0, 2)) {
             const parsed = parseRecommendedRecipe(section.trim(), analysisResult);
             if (parsed) {
@@ -175,7 +155,7 @@ const RecipeTab = () => {
         return recipes;
     };
 
-    // 추천 레시피 파싱 함수 (LLMAnalysis와 유사하지만 구조화된 형태로)
+    // 레시피 텍스트 파싱
     const parseRecommendedRecipe = (recipeText, analysisResult) => {
         if (!recipeText) return null;
 
@@ -196,14 +176,13 @@ const RecipeTab = () => {
 
         const analysis = parseAnalysis(analysisResult || '');
         
-        // 추천 이유 추출 (분석 결과에서 부족한 영양소)
+        // 추천 이유 생성
         const getRecommendReason = (text) => {
             if (!text) return '영양 보완';
             
             const proteinMatch = text.match(/단백질:\s*([^\n]+)/);
             const caloriesMatch = text.match(/칼로리:\s*([^\n]+)/);
             
-            // 간단한 추천 이유 생성
             if (proteinMatch && parseFloat(proteinMatch[1]) < 20) {
                 return '단백질 부족';
             }
@@ -230,8 +209,8 @@ const RecipeTab = () => {
             id: Date.now() + Math.random(),
             title: title.replace(/^\*\*|\*\*$/g, ''),
             description: recommendReason,
-            cookingTime: 20, // 기본값, 실제로는 레시피에서 추출 필요
-            difficulty: "보통", // 기본값
+            cookingTime: 20,
+            difficulty: "보통",
             servings: 1,
             ingredients: ingredients.length > 0 
                 ? ingredients.map(ing => ing.replace(/^[-•]\s*/, '').trim()).filter(Boolean)
@@ -246,13 +225,29 @@ const RecipeTab = () => {
             },
             recommendReason: recommendReason,
             instructions: instructions,
-            rawRecipe: recipeText // 원본 텍스트 저장
+            rawRecipe: recipeText
         };
     };
+
+    // 난이도별 색상
+    const difficultyColors = {
+        '쉬움': 'text-green-600',
+        '보통': 'text-yellow-600',
+        '어려움': 'text-red-600'
+    };
+
+    // 영양 정보 그리드 아이템
+    const nutritionGridItems = (recipe) => [
+        { icon: '⏱️', label: '조리시간', value: `${recipe.cookingTime}분` },
+        { icon: '🔥', label: '난이도', value: recipe.difficulty, colorClass: difficultyColors[recipe.difficulty] },
+        { icon: '📊', label: '칼로리', value: `${recipe.nutrition.calories}kcal` },
+        { icon: '💪', label: '단백질', value: `${recipe.nutrition.protein}g` },
+    ];
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
             <div className="max-w-6xl mx-auto">
+                {/* 헤더 */}
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">오늘의 추천 레시피</h1>
                     <p className="text-gray-600">오늘의 전체 식단을 종합하여 추천하는 레시피입니다</p>
@@ -265,70 +260,53 @@ const RecipeTab = () => {
                     </button>
                 </div>
 
-                {/* 레시피 테이블 */}
+                {/* 레시피 목록 */}
                 {isLoading ? (
                     <div className="bg-white rounded-lg shadow p-12 text-center">
                         <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
                         <p className="text-gray-600">AI가 레시피를 추천하고 있습니다...</p>
                     </div>
                 ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {recipes.map((recipe) => (
-                        <div 
-                            key={recipe.id} 
-                            className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
-                            style={{ minHeight: '300px' }}
-                        >
-                            <div className="p-6 flex flex-col h-full">
-                                {/* 레시피명 */}
-                                <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
-                                    {recipe.title}
-                                </h3>
-                                
-                                {/* 추천 이유 설명 - 배지 없이 일반 텍스트로 표시 */}
-                                {recipe.description && (
-                                    <p className="text-sm text-gray-600 mb-3 leading-relaxed line-clamp-10 flex-1">
-                                        {recipe.description}
-                                    </p>
-                                )}
-                                
-                                {/* 정보 그리드 */}
-                                <div className="grid grid-cols-2 gap-3 mb-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-gray-500 text-sm">⏱️</span>
-                                        <span className="text-sm text-gray-700">{recipe.cookingTime}분</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {recipes.map((recipe) => (
+                            <div 
+                                key={recipe.id} 
+                                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col"
+                                style={{ minHeight: '300px' }}
+                            >
+                                <div className="p-6 flex flex-col h-full">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
+                                        {recipe.title}
+                                    </h3>
+                                    
+                                    {recipe.description && (
+                                        <p className="text-sm text-gray-600 mb-3 leading-relaxed line-clamp-10 flex-1">
+                                            {recipe.description}
+                                        </p>
+                                    )}
+                                    
+                                    {/* 정보 그리드 */}
+                                    <div className="grid grid-cols-2 gap-3 mb-4">
+                                        {nutritionGridItems(recipe).map((item, index) => (
+                                            <div key={index} className="flex items-center gap-2">
+                                                <span className="text-gray-500 text-sm">{item.icon}</span>
+                                                <span className={`text-sm ${item.colorClass || 'text-gray-700'}`}>
+                                                    {item.value}
+                                                </span>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-gray-500 text-sm">🔥</span>
-                                        <span className={`text-sm font-medium ${
-                                            recipe.difficulty === '쉬움' ? 'text-green-600' :
-                                            recipe.difficulty === '보통' ? 'text-yellow-600' :
-                                            'text-red-600'
-                                        }`}>
-                                            {recipe.difficulty}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-gray-500 text-sm">📊</span>
-                                        <span className="text-sm text-gray-700">{recipe.nutrition.calories}kcal</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-gray-500 text-sm">💪</span>
-                                        <span className="text-sm text-gray-700">{recipe.nutrition.protein}g</span>
-                                    </div>
+                                    
+                                    <button
+                                        className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-lg hover:from-cyan-600 hover:to-emerald-600 transition-all text-sm font-medium shadow-md hover:shadow-lg mt-auto"
+                                        onClick={() => setSelectedRecipe(recipe)}
+                                    >
+                                        상세보기
+                                    </button>
                                 </div>
-                                
-                                {/* 상세보기 버튼 - 항상 하단에 고정 */}
-                                <button
-                                    className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-lg hover:from-cyan-600 hover:to-emerald-600 transition-all text-sm font-medium shadow-md hover:shadow-lg mt-auto"
-                                    onClick={() => setSelectedRecipe(recipe)}
-                                >
-                                    상세보기
-                                </button>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
                 )}
 
                 {/* 상세 정보 모달 */}
@@ -348,51 +326,41 @@ const RecipeTab = () => {
 
                                 <p className="text-gray-600 mb-6">{selectedRecipe.description}</p>
 
+                                {/* 기본 정보 */}
                                 <div className="grid grid-cols-3 gap-4 mb-6">
-                                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-sm text-gray-500">조리시간</div>
-                                        <div className="text-lg font-semibold text-gray-800">{selectedRecipe.cookingTime}분</div>
-                                    </div>
-                                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-sm text-gray-500">난이도</div>
-                                        <div className="text-lg font-semibold text-gray-800">{selectedRecipe.difficulty}</div>
-                                    </div>
-                                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                                        <div className="text-sm text-gray-500">인분</div>
-                                        <div className="text-lg font-semibold text-gray-800">{selectedRecipe.servings}인분</div>
-                                    </div>
+                                    {[
+                                        { label: '조리시간', value: `${selectedRecipe.cookingTime}분` },
+                                        { label: '난이도', value: selectedRecipe.difficulty },
+                                        { label: '인분', value: `${selectedRecipe.servings}인분` }
+                                    ].map((item, index) => (
+                                        <div key={index} className="text-center p-3 bg-gray-50 rounded-lg">
+                                            <div className="text-sm text-gray-500">{item.label}</div>
+                                            <div className="text-lg font-semibold text-gray-800">{item.value}</div>
+                                        </div>
+                                    ))}
                                 </div>
 
+                                {/* 영양 정보 */}
                                 <div className="mb-6">
                                     <h3 className="text-lg font-semibold text-gray-800 mb-3">영양 정보 (1인분 기준)</h3>
                                     <div className="grid grid-cols-3 gap-3">
-                                        <div className="p-3 bg-blue-50 rounded-lg">
-                                            <div className="text-sm text-gray-600">칼로리</div>
-                                            <div className="text-lg font-semibold text-gray-800">{selectedRecipe.nutrition.calories}kcal</div>
-                                        </div>
-                                        <div className="p-3 bg-green-50 rounded-lg">
-                                            <div className="text-sm text-gray-600">탄수화물</div>
-                                            <div className="text-lg font-semibold text-gray-800">{selectedRecipe.nutrition.carbohydrates}g</div>
-                                        </div>
-                                        <div className="p-3 bg-purple-50 rounded-lg">
-                                            <div className="text-sm text-gray-600">단백질</div>
-                                            <div className="text-lg font-semibold text-gray-800">{selectedRecipe.nutrition.protein}g</div>
-                                        </div>
-                                        <div className="p-3 bg-yellow-50 rounded-lg">
-                                            <div className="text-sm text-gray-600">지방</div>
-                                            <div className="text-lg font-semibold text-gray-800">{selectedRecipe.nutrition.fat}g</div>
-                                        </div>
-                                        <div className="p-3 bg-orange-50 rounded-lg">
-                                            <div className="text-sm text-gray-600">식이섬유</div>
-                                            <div className="text-lg font-semibold text-gray-800">{selectedRecipe.nutrition.fiber}g</div>
-                                        </div>
-                                        <div className="p-3 bg-red-50 rounded-lg">
-                                            <div className="text-sm text-gray-600">나트륨</div>
-                                            <div className="text-lg font-semibold text-gray-800">{selectedRecipe.nutrition.sodium}mg</div>
-                                        </div>
+                                        {[
+                                            { label: '칼로리', value: `${selectedRecipe.nutrition.calories}kcal`, color: 'blue' },
+                                            { label: '탄수화물', value: `${selectedRecipe.nutrition.carbohydrates}g`, color: 'green' },
+                                            { label: '단백질', value: `${selectedRecipe.nutrition.protein}g`, color: 'purple' },
+                                            { label: '지방', value: `${selectedRecipe.nutrition.fat}g`, color: 'yellow' },
+                                            { label: '식이섬유', value: `${selectedRecipe.nutrition.fiber}g`, color: 'orange' },
+                                            { label: '나트륨', value: `${selectedRecipe.nutrition.sodium}mg`, color: 'red' },
+                                        ].map((item, index) => (
+                                            <div key={index} className={`p-3 bg-${item.color}-50 rounded-lg`}>
+                                                <div className="text-sm text-gray-600">{item.label}</div>
+                                                <div className="text-lg font-semibold text-gray-800">{item.value}</div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
+                                {/* 재료 */}
                                 <div className="mb-6">
                                     <h3 className="text-lg font-semibold text-gray-800 mb-3">재료</h3>
                                     <ul className="space-y-2">
@@ -405,6 +373,7 @@ const RecipeTab = () => {
                                     </ul>
                                 </div>
 
+                                {/* 조리법 */}
                                 {selectedRecipe.instructions && (
                                     <div className="mb-6">
                                         <h3 className="text-lg font-semibold text-gray-800 mb-3">조리법</h3>

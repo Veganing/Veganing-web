@@ -1,4 +1,4 @@
-import {useState, memo} from 'react'
+import { useState, memo } from 'react';
 import useMealUpload from "../../../../hooks/useMealUpload";
 
 import MealUploadCard from "./MealUploadCard";
@@ -8,7 +8,8 @@ import UploadButton from './UploadButton';
 
 const MealContainer = memo(function MealContainer() {
     const [mealsCount, setMealsCount] = useState(0);
-    const [isSaved, setIsSaved] = useState(false); // 저장 완료 상태
+    const [isSaved, setIsSaved] = useState(false); // 전체 저장 완료 여부
+    
     const {
         analysisResult,
         isAnalyzing,
@@ -22,19 +23,17 @@ const MealContainer = memo(function MealContainer() {
         resetUpload
     } = useMealUpload();
 
+    // 전체 저장 완료시 호출
     const handleSaveComplete = () => {
-        // 업로드 폼 리셋
         resetUpload();
-        // UI상으로는 식단 기록을 숨기기 위해 상태 변경
         setIsSaved(true);
-        // 식단은 localStorage에 이미 저장되어 있으므로 삭제하지 않음
-        // (레시피 탭에서 추천 레시피를 계속 볼 수 있도록 유지)
-        // window.resetMealIndex?.(); // 주석 처리: 추천 레시피 유지를 위해
     };
 
     return (
         <div className='w-full flex flex-col gap-8' style={{ width: '100%', minWidth: 0 }}>
+            {/* 상단: 업로드 + 분석 결과 */}
             <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-2" style={{ width: '100%' }}>
+                {/* 왼쪽: 업로드 카드 */}
                 <div className="w-full min-w-0 md:col-span-1" style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
                     <MealUploadCard
                         onAnalysisComplete={setAnalysisResult}
@@ -44,6 +43,7 @@ const MealContainer = memo(function MealContainer() {
                         resetTrigger={resetTrigger}
                     />
                 </div>
+                {/* 오른쪽: 분석 결과 */}
                 <div className="w-full min-w-0 md:col-span-2" style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
                     <LLMAnalysis
                         output={analysisResult}
@@ -55,7 +55,10 @@ const MealContainer = memo(function MealContainer() {
                 </div>
             </div>
 
+            {/* 중간: 오늘의 식단 목록 (전체 저장 전까지만 표시) */}
             {!isSaved && <MealIndex onMealsCountChange={setMealsCount} />}
+            
+            {/* 하단: 전체 저장 버튼 */}
             <UploadButton mealsCount={mealsCount} onSaveComplete={handleSaveComplete} />
         </div>
     );

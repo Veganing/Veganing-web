@@ -14,16 +14,15 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
     
     if (!isOpen && !showNotification) return null;
 
-    // 등급 기준 정의
+    // CO2 절약량에 따른 등급 이미지
     const gradeCriteria = [
-        { min: 6.0, image: fifthImage },   // 1등급 (최우수)
-        { min: 5.5, image: fourthImage },  // 2등급 (우수)
-        { min: 4.5, image: thirdImage },   // 3등급 (보통)
-        { min: 3.0, image: secondImage },  // 4등급 (주의)
-        { min: 0, image: firstImage }      // 5등급 (개선 필요)
+        { min: 6.0, image: fifthImage },   // 최우수
+        { min: 5.5, image: fourthImage },  // 우수
+        { min: 4.5, image: thirdImage },   // 보통
+        { min: 3.0, image: secondImage },  // 주의
+        { min: 0, image: firstImage }      // 개선 필요
     ];
 
-    // CO2 절약량에 따른 등급 이미지 선택
     const getGradeImage = (co2Saved) => {
         const co2 = parseFloat(co2Saved || 0);
         const grade = gradeCriteria.find(criterion => co2 >= criterion.min);
@@ -32,15 +31,14 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
 
     const gradeImage = getGradeImage(data?.co2Saved);
 
+    // 좋아요 버튼 클릭 - 데이터 저장
     const handleLike = () => {
-        // 데이터 저장
         addCarbonData({
             co2Saved: data?.co2Saved || 0,
             veganRate: data?.veganRate || 0,
             mealCount: data?.mealCount || 0
         });
         
-        // 알림 모달 표시 (팝업은 닫지 않음)
         setShowNotification(true);
     };
 
@@ -56,6 +54,7 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
             {isOpen && !showNotification && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="w-[672px] h-[800px] relative bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-3xl shadow-2xl overflow-hidden">
+                        {/* 닫기 버튼 */}
                         <button
                             onClick={onClose}
                             className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 hover:bg-white flex items-center justify-center z-10"
@@ -64,6 +63,7 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                         </button>
 
                         <div className="w-full h-full px-8 py-8 flex flex-col justify-between">
+                            {/* 제목 */}
                             <div className="flex flex-col gap-2">
                                 <div className="text-center text-3xl font-normal font-['Inter'] leading-9 tracking-tight">
                                     🌍 오늘의 환경 기여도
@@ -73,6 +73,7 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                                 </div>
                             </div>
 
+                            {/* 등급 이미지 */}
                             <div className="flex-1 bg-white/20 rounded-2xl flex items-center justify-center my-4 overflow-hidden">
                                 <img 
                                     src={gradeImage} 
@@ -81,12 +82,14 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                                 />
                             </div>
 
+                            {/* 결과 정보 */}
                             <div className="flex flex-col gap-3">
                                 <div className="text-center text-emerald-700 text-xl font-normal font-['Inter'] leading-loose tracking-tight">
                                     나무가 자라고 있어요! 🌿
                                 </div>
 
                                 <div className="px-6 py-4 bg-white/95 rounded-2xl shadow-md flex flex-col gap-3">
+                                    {/* CO2 절약량 */}
                                     <div className="flex flex-col items-center gap-1">
                                         <div className="text-3xl font-normal font-['Inter'] leading-10 tracking-tight">
                                             {data?.co2Saved || '0'}kg
@@ -96,6 +99,7 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                                         </div>
                                     </div>
 
+                                    {/* 비건 비율 + 분석 음식 */}
                                     <div className="flex gap-3">
                                         <div className="flex-1 px-3 py-2 bg-emerald-100 rounded-2xl flex flex-col items-center border border-emerald-200">
                                             <div className="text-emerald-700 text-xs font-normal font-['Inter'] leading-tight">
@@ -115,6 +119,7 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                                         </div>
                                     </div>
 
+                                    {/* 안내 문구 */}
                                     <div className="flex flex-col gap-0.5 pt-1 border-gray-200">
                                         <div className="text-gray-500 text-xs font-normal font-['Inter'] text-center">
                                             🌱 1kg CO₂ = 나무 1그루가 1년간 흡수하는 양
@@ -125,6 +130,7 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                                     </div>
                                 </div>
 
+                                {/* 버튼들 */}
                                 <div className="flex justify-center items-center gap-4 mt-2">
                                     <button
                                         onClick={handleLike}
@@ -142,11 +148,10 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                 </div>
             )}
 
-            {/* 알림 모달 */}
+            {/* 저장 완료 알림 모달 */}
             {showNotification && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
                     <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4">
-                        {/* 아이콘 */}
                         <div className="text-center mb-6">
                             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full mb-4">
                                 <span className="text-3xl">✅</span>
@@ -159,7 +164,7 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                             </p>
                         </div>
 
-                        {/* 안내 메시지 */}
+                        {/* 추가 기능 안내 */}
                         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-4 mb-6">
                             <div className="flex items-start gap-3">
                                 <span className="text-2xl flex-shrink-0">💡</span>
@@ -171,7 +176,7 @@ function EnvImpactPopup({ isOpen, onClose, data }) {
                             </div>
                         </div>
 
-                        {/* 버튼 */}
+                        {/* 진행 현황 보러가기 버튼 */}
                         <button
                             onClick={handleGoToProgress}
                             className="w-full py-3 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-2xl font-semibold hover:from-cyan-600 hover:to-emerald-600 transition-all shadow-lg"

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import veganType from '../../../assets/challenge/veganType.png'
+import veganType from '../../../assets/challenge/veganType.png';
 
 function VeganTypeStep({ selected, onSelect }) {
     const [showModal, setShowModal] = useState(false);
@@ -18,7 +18,6 @@ function VeganTypeStep({ selected, onSelect }) {
     return (
         <>
             <div className="bg-white/90 rounded-[48px] shadow-2xl p-6 flex flex-col relative">
-                {/* 물음표 아이콘 */}
                 <button
                     onClick={() => setShowModal(true)}
                     className="absolute top-5 right-7 w-6 h-6 rounded-full bg-teal-100 hover:bg-teal-200 flex items-center justify-center transition-colors text-teal-600 font-bold"
@@ -66,7 +65,6 @@ function VeganTypeStep({ selected, onSelect }) {
                 </div>
             </div>
 
-            {/* 모달 */}
             {showModal && (
                 <div 
                     className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -76,7 +74,6 @@ function VeganTypeStep({ selected, onSelect }) {
                         className="bg-white rounded-3xl p-6 max-w-4xl max-h-[90vh] overflow-auto relative"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* 닫기 버튼 */}
                         <button
                             onClick={() => setShowModal(false)}
                             className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 text-xl"
@@ -84,7 +81,6 @@ function VeganTypeStep({ selected, onSelect }) {
                             ×
                         </button>
 
-                        {/* 이미지 영역 - 여기에 이미지 URL 넣으세요 */}
                         <div className="w-full bg-gray-100 rounded-xl overflow-hidden">
                             <img 
                                 src={veganType}

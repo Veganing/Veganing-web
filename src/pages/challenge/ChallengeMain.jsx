@@ -183,7 +183,7 @@ function ChallengeMain() {
                                 className="w-[236px] h-[160px] bg-white/90 rounded-[35px] shadow-2xl p-6 flex flex-col items-center justify-center gap-3 flex-shrink-0"
                                 style={{ width: '236px', minWidth: '236px', maxWidth: '236px', flexShrink: 0 }}
                             >
-                                <div className="text-4xl">{card.emoji}</div>
+                                
                                 <div className="text-3xl font-bold font-['Nunito'] text-gray-900">
                                     {card.value}
                                 </div>

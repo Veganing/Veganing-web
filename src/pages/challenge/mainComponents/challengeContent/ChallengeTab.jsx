@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 function ChallengeTabs() {
     const location = useLocation();
     
+    // 탭 목록
     const tabs = [
         { name: '오늘의 식단', path: '/challenge/main/meal' },
         { name: '진행 현황', path: '/challenge/main/progress' },
@@ -10,7 +11,7 @@ function ChallengeTabs() {
         { name: '쇼핑', path: '/challenge/main/shopping' },
     ];
 
-    // pathname이 /challenge/main이면 meal을 선택된 것으로 간주
+    // 기본 경로(/challenge/main)는 meal 탭으로 처리
     const currentPath = location.pathname === '/challenge/main'
         ? '/challenge/main/meal' 
         : location.pathname;
